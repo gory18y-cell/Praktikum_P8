@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akses Ditolak (403) — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body style="background:var(--ivory);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px">
+  <div class="card" style="max-width:480px;text-align:center;padding:48px 32px;box-shadow:var(--shadow-lg)">
+    <div style="width:72px;height:72px;background:#FFF0C9;color:var(--warning);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;margin:0 auto 24px auto">
+      <i data-lucide="shield-alert" style="width:36px;height:36px"></i>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--warning);margin-bottom:8px">ERROR 403 • FORBIDDEN</div>
+    <h1 style="font-size:1.6rem;font-weight:800;color:var(--heading);margin-bottom:12px">Akses Halaman Dibatasi</h1>
+    <p style="font-size:14px;color:var(--body);line-height:1.6;margin-bottom:28px">
+      Akun Anda tidak memiliki izin untuk membuka halaman ini. Modul ini dikhususkan bagi Administrator atau Manajer Organisasi.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+        <i data-lucide="arrow-left" style="width:16px;height:16px"></i> Kembali ke Beranda
+      </button>
+      <button class="btn btn-primary" onclick="window.location.href='login.html'">
+        Ganti Akun Masuk
+      </button>
+    </div>
+  </div>
+  <script>
+    if (window.lucide) window.lucide.createIcons();
+  </script>
+</body>
+</html>

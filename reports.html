@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan & Analitik — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const currentUser = Auth.require();
+if (!currentUser) throw new Error('Not authenticated');
+</script>
+
+<div id="shell-root"></div>
+
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('reports', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let rState = {
+  period: '2024',
+  unitId: 'all',
+  trendChart: null,
+  categoryChart: null,
+};
+
+function initReports() {
+  renderReportsPage();
+}
+
+function renderReportsPage() {
+  const users = DB.getAll('users');
+  const programs = DB.getAll('programs');
+  const enrollments = DB.getAll('enrollments');
+  const certificates = DB.getAll('certificates');
+  const units = DB.getAll('organizational_units');
+
+  // Stats calculation
+  const totalEnrolled = enrollments.length;
+  const totalCompleted = enrollments.filter(e => e.status === 'Selesai' || e.progress === 100).length;
+  const completionRate = totalEnrolled > 0 ? Math.round((totalCompleted / totalEnrolled) * 100) : 0;
+  const totalActive = enrollments.filter(e => e.status === 'Aktif').length;
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{ label: 'TUMBUH', url: 'dashboard.html' }, { label: 'Laporan & Analitik' }])}
+
+    <div class="page-header">
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">Laporan & Analitik Ekosistem</h1>
+          <p class="page-subtitle">Wawasan data partisipasi belajar, efektivitas pelatihan, dan evaluasi talenta organisasi.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary btn-sm" onclick="exportReportData()">
+            <i data-lucide="file-spreadsheet" style="width:16px;height:16px"></i> Ekspor CSV
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="window.print()">
+            <i data-lucide="printer" style="width:16px;height:16px"></i> Cetak Dokumen
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label class="filter-label"><i data-lucide="calendar" style="width:14px;height:14px"></i> Periode:</label>
+        <select class="filter-select" onchange="handlePeriodChange(this.value)">
+          <option value="2024" ${rState.period === '2024' ? 'selected' : ''}>Tahun Berjalan (2024)</option>
+          <option value="q4" ${rState.period === 'q4' ? 'selected' : ''}>Kuartal 4 (Okt - Des)</option>
+          <option value="q3" ${rState.period === 'q3' ? 'selected' : ''}>Kuartal 3 (Jul - Sep)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label"><i data-lucide="building-2" style="width:14px;height:14px"></i> Unit Organisasi:</label>
+        <select class="filter-select" onchange="handleUnitChange(this.value)">
+          <option value="all" ${rState.unitId === 'all' ? 'selected' : ''}>Semua Divisi / Unit</option>
+          ${units.map(u => `<option value="${u.id}" ${rState.unitId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
+        </select>
+      </div>
+      <div style="font-size:var(--text-xs);color:var(--body);margin-left:auto">
+        Data diperbarui: <strong>${formatDate(new Date())}</strong>
+      </div>
+    </div>
+
+    <!-- Key Metrics Row -->
+    <div class="report-stat-row">
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:var(--mint)">
+          <i data-lucide="users" style="width:20px;height:20px;color:var(--primary)"></i>
+        </div>
+        <div>
+          <div class="stat-value">${totalEnrolled}</div>
+          <div class="stat-label">Total Pendaftaran Pelatihan</div>
+        </div>
+        <div class="stat-change up" style="font-size:11px">↑ 18% dari kuartal sebelumnya</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:var(--blue-accent)">
+          <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E5FAD"></i>
+        </div>
+        <div>
+          <div class="stat-value">${completionRate}%</div>
+          <div class="stat-label">Tingkat Kelulusan (Completion Rate)</div>
+        </div>
+        <div class="stat-change up" style="font-size:11px">${totalCompleted} peserta lulus sertifikasi</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:var(--lavender-accent)">
+          <i data-lucide="award" style="width:20px;height:20px;color:#5B3FBF"></i>
+        </div>
+        <div>
+          <div class="stat-value">${certificates.length}</div>
+          <div class="stat-label">Sertifikat Kelulusan Terbit</div>
+        </div>
+        <div class="stat-change" style="font-size:11px;color:var(--body)">Terverifikasi digital</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="report-chart-row">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+          <div>
+            <h3 class="text-base font-bold" style="color:var(--heading)">Tren Partisipasi & Kelulusan Bulanan</h3>
+            <p class="text-xs text-muted">Aktivitas peserta selama 7 bulan terakhir</p>
+          </div>
+          <span class="badge badge-green">Bulanan</span>
+        </div>
+        <div style="height:280px;position:relative">
+          <canvas id="report-trend-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+          <div>
+            <h3 class="text-base font-bold" style="color:var(--heading)">Distribusi Program Pelatihan</h3>
+            <p class="text-xs text-muted">Berdasarkan bidang keilmuan & kompetensi</p>
+          </div>
+          <span class="badge badge-blue">${programs.length} Program</span>
+        </div>
+        <div style="height:280px;position:relative;display:flex;align-items:center;justify-content:center">
+          <canvas id="report-category-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Data Table: Program Performance -->
+    <div class="card" style="margin-top:var(--space-5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+        <div>
+          <h3 class="text-base font-bold" style="color:var(--heading)">Kinerja Program & Peserta</h3>
+          <p class="text-xs text-muted">Rincian kuota, jumlah peserta aktif, dan tingkat penyelesaian per materi</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Judul Program</th>
+              <th>Kategori</th>
+              <th>Instruktur</th>
+              <th>Kuota & Partisipasi</th>
+              <th>Status</th>
+              <th>Tingkat Okupansi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${programs.map(p => {
+              const ins = DB.getById('users', p.instructor_id);
+              const occupancy = Math.round((p.enrolled / p.quota) * 100);
+              return `
+                <tr>
+                  <td>
+                    <div style="font-weight:600;color:var(--heading)">${p.title}</div>
+                    <div style="font-size:11px;color:var(--muted)">Durasi: ${p.duration}</div>
+                  </td>
+                  <td>${categoryBadge(p.category)}</td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      ${ins ? avatarHTML(ins, 'xs') : ''}
+                      <span style="font-size:12px">${ins ? ins.full_name : '-'}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:12px;font-weight:600">${p.enrolled} / ${p.quota} Peserta</div>
+                  </td>
+                  <td>${statusBadge(p.status)}</td>
+                  <td style="min-width:140px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      ${progressBarHTML(occupancy)}
+                      <span style="font-size:11px;font-weight:700">${occupancy}%</span>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+  buildReportCharts();
+}
+
+function handlePeriodChange(p) {
+  rState.period = p;
+  renderReportsPage();
+}
+
+function handleUnitChange(u) {
+  rState.unitId = u;
+  renderReportsPage();
+}
+
+function buildReportCharts() {
+  const trendCanvas = document.getElementById('report-trend-chart');
+  const catCanvas = document.getElementById('report-category-chart');
+  if (!trendCanvas || !catCanvas) return;
+
+  if (rState.trendChart) rState.trendChart.destroy();
+  if (rState.categoryChart) rState.categoryChart.destroy();
+
+  const partTrend = DB.data.participation_trend || [];
+  const compTrend = DB.data.completion_trend || [];
+
+  // Trend Chart
+  rState.trendChart = new Chart(trendCanvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: partTrend.map(d => d.month),
+      datasets: [
+        {
+          label: 'Peserta Belajar Aktif',
+          data: partTrend.map(d => d.value),
+          borderColor: '#086B50',
+          backgroundColor: 'rgba(8, 107, 80, 0.1)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+        },
+        {
+          label: 'Tingkat Kelulusan (%)',
+          data: compTrend.map(d => d.value),
+          borderColor: '#1E5FAD',
+          borderDash: [5, 5],
+          tension: 0.35,
+          borderWidth: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, font: { family: "'Plus Jakarta Sans'" } } }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { font: { family: "'Plus Jakarta Sans'", size: 10 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: "'Plus Jakarta Sans'", size: 10 } }
+        }
+      }
+    }
+  });
+
+  // Category Distribution Doughnut
+  const programs = DB.getAll('programs');
+  const catCounts = {};
+  programs.forEach(p => { catCounts[p.category] = (catCounts[p.category] || 0) + 1; });
+
+  rState.categoryChart = new Chart(catCanvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(catCounts),
+      datasets: [
+        {
+          data: Object.values(catCounts),
+          backgroundColor: ['#086B50', '#5B3FBF', '#15966F', '#D69A24', '#D95757', '#1E5FAD'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, family: "'Plus Jakarta Sans'" } } }
+      },
+      cutout: '65%'
+    }
+  });
+}
+
+function exportReportData() {
+  const enrollments = DB.getAll('enrollments');
+  const exportData = enrollments.map(e => {
+    const user = DB.getById('users', e.user_id) || {};
+    const prog = DB.getById('programs', e.program_id) || {};
+    return {
+      nama_peserta: user.full_name || '-',
+      email: user.email || '-',
+      posisi: user.position || user.role,
+      program: prog.title || '-',
+      kategori: prog.category || '-',
+      tanggal_daftar: e.enrollment_date,
+      status: e.status,
+      progres_persen: e.progress + '%',
+      tanggal_selesai: e.completed_at || '-'
+    };
+  });
+
+  const columns = [
+    { label: 'Nama Peserta', key: 'nama_peserta' },
+    { label: 'Email', key: 'email' },
+    { label: 'Jabatan / Posisi', key: 'posisi' },
+    { label: 'Program Pelatihan', key: 'program' },
+    { label: 'Kategori', key: 'kategori' },
+    { label: 'Tanggal Daftar', key: 'tanggal_daftar' },
+    { label: 'Status', key: 'status' },
+    { label: 'Progres', key: 'progres_persen' },
+    { label: 'Tanggal Selesai', key: 'tanggal_selesai' },
+  ];
+
+  exportCSV(exportData, `Laporan_TUMBUH_${rState.period}.csv`, columns);
+}
+
+// ── Startup
+document.addEventListener('DOMContentLoaded', () => {
+  initReports();
+});
+</script>
+</body>
+</html>

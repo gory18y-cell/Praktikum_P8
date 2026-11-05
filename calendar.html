@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalender & Jadwal — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const currentUser = Auth.require();
+if (!currentUser) throw new Error('Not authenticated');
+</script>
+
+<div id="shell-root"></div>
+
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('calendar', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let calState = {
+  currentDate: new Date(2024, 9, 1), // Default Oct 2024 (matching seed data)
+  selectedCategory: 'all',
+  selectedDate: null,
+};
+
+const MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+function initCalendar() {
+  renderCalendarPage();
+}
+
+function renderCalendarPage() {
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+  const year = calState.currentDate.getFullYear();
+  const month = calState.currentDate.getMonth();
+
+  // All events
+  let allEvents = DB.getAll('events');
+  if (calState.selectedCategory !== 'all') {
+    allEvents = allEvents.filter(e => e.category === calState.selectedCategory);
+  }
+
+  // Monthly events
+  const monthEvents = allEvents.filter(e => {
+    const d = new Date(e.start_at);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+
+  // Upcoming agenda (sorted)
+  const agendaList = [...allEvents]
+    .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+    .slice(0, 8);
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{ label: 'TUMBUH', url: 'dashboard.html' }, { label: 'Kalender & Jadwal' }])}
+
+    <div class="page-header">
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">Kalender Kegiatan & Pelatihan</h1>
+          <p class="page-subtitle">Kelola jadwal sesi belajar, evaluasi berkala, pertemuan, dan batas tenggat.</p>
+        </div>
+        <div class="page-actions">
+          ${isAdmin ? `
+            <button class="btn btn-primary btn-sm" onclick="openEventModal()">
+              <i data-lucide="calendar-plus" style="width:16px;height:16px"></i> Tambah Jadwal
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Pills Toolbar -->
+    <div class="filter-bar" style="margin-bottom: var(--space-4)">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="filter-label">Filter Kategori:</span>
+        <button class="btn btn-sm ${calState.selectedCategory === 'all' ? 'btn-primary' : 'btn-secondary'}" onclick="setCategoryFilter('all')">
+          Semua Kegiatan
+        </button>
+        <button class="btn btn-sm ${calState.selectedCategory === 'training' ? 'btn-primary' : 'btn-secondary'}" onclick="setCategoryFilter('training')">
+          <span style="color:var(--primary);margin-right:4px">●</span> Pelatihan
+        </button>
+        <button class="btn btn-sm ${calState.selectedCategory === 'eval' ? 'btn-primary' : 'btn-secondary'}" onclick="setCategoryFilter('eval')">
+          <span style="color:var(--warning);margin-right:4px">●</span> Evaluasi
+        </button>
+        <button class="btn btn-sm ${calState.selectedCategory === 'meeting' ? 'btn-primary' : 'btn-secondary'}" onclick="setCategoryFilter('meeting')">
+          <span style="color:#1E5FAD;margin-right:4px">●</span> Pertemuan
+        </button>
+        <button class="btn btn-sm ${calState.selectedCategory === 'deadline' ? 'btn-primary' : 'btn-secondary'}" onclick="setCategoryFilter('deadline')">
+          <span style="color:var(--danger);margin-right:4px">●</span> Batas Tenggat
+        </button>
+      </div>
+    </div>
+
+    <!-- Calendar Wrapper (Grid + Sidebar) -->
+    <div class="calendar-wrapper">
+      <!-- Left: Monthly Grid -->
+      <div class="calendar-main">
+        <div class="calendar-header">
+          <div class="calendar-nav">
+            <button class="btn btn-ghost btn-icon" onclick="prevMonth()">
+              <i data-lucide="chevron-left" style="width:18px;height:18px"></i>
+            </button>
+            <span class="calendar-month">${MONTH_NAMES[month]} ${year}</span>
+            <button class="btn btn-ghost btn-icon" onclick="nextMonth()">
+              <i data-lucide="chevron-right" style="width:18px;height:18px"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="goToToday()" style="margin-left:8px">Hari Ini</button>
+          </div>
+          <div class="calendar-view-tabs">
+            <span class="badge badge-green">${monthEvents.length} Kegiatan Bulan Ini</span>
+          </div>
+        </div>
+
+        <!-- Day Names -->
+        <div class="calendar-grid-header">
+          <div class="cal-day-name">Min</div>
+          <div class="cal-day-name">Sen</div>
+          <div class="cal-day-name">Sel</div>
+          <div class="cal-day-name">Rab</div>
+          <div class="cal-day-name">Kam</div>
+          <div class="cal-day-name">Jum</div>
+          <div class="cal-day-name">Sab</div>
+        </div>
+
+        <!-- Calendar Days Grid -->
+        <div class="calendar-days" id="calendar-days-grid">
+          ${renderCalendarDays(year, month, monthEvents)}
+        </div>
+      </div>
+
+      <!-- Right: Agenda List Sidebar -->
+      <div class="agenda-sidebar">
+        <div class="card" style="padding:var(--space-4)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+            <h3 class="text-sm font-bold" style="color:var(--heading)">Agenda Mendatang</h3>
+            <span class="badge badge-gray">${agendaList.length}</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            ${agendaList.length === 0 ? `
+              <div class="empty-state" style="padding:20px;font-size:12px">Tidak ada agenda mendatang.</div>
+            ` : agendaList.map(item => {
+              const d = new Date(item.start_at);
+              const isToday = isSameDay(d, new Date());
+              return `
+                <div class="agenda-item ${item.category}" onclick="openEventDetail('${item.id}')" style="cursor:pointer">
+                  <div style="flex:1">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                      <span class="agenda-time">${formatDateShort(item.start_at)} • ${formatTime(item.start_at)} WIB</span>
+                      ${isToday ? `<span class="badge badge-green" style="font-size:9px">Hari Ini</span>` : ''}
+                    </div>
+                    <div class="agenda-title">${item.title}</div>
+                    <div class="agenda-loc">
+                      <i data-lucide="map-pin" style="width:11px;height:11px;display:inline-block"></i>
+                      ${item.location || 'Online'}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="event-modal-container"></div>
+    <div id="event-detail-container"></div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function renderCalendarDays(year, month, events) {
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const today = new Date();
+
+  let html = '';
+
+  // Previous month trailing days
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dayNum = prevMonthDays - i;
+    html += `
+      <div class="cal-day other-month">
+        <div class="cal-day-num">${dayNum}</div>
+      </div>
+    `;
+  }
+
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateObj = new Date(year, month, day);
+    const isToday = isSameDay(dateObj, today);
+    const dayEvents = events.filter(e => {
+      const ed = new Date(e.start_at);
+      return ed.getFullYear() === year && ed.getMonth() === month && ed.getDate() === day;
+    });
+
+    html += `
+      <div class="cal-day ${isToday ? 'today' : ''}" onclick="handleDayClick(${year}, ${month}, ${day})">
+        <div class="cal-day-num">${day}</div>
+        <div style="display:flex;flex-direction:column;gap:2px;overflow:hidden">
+          ${dayEvents.slice(0, 3).map(ev => `
+            <div class="cal-event cat-${ev.category}" onclick="event.stopPropagation();openEventDetail('${ev.id}')" title="${ev.title}">
+              ${ev.title}
+            </div>
+          `).join('')}
+          ${dayEvents.length > 3 ? `<div style="font-size:10px;color:var(--body);font-weight:600">+${dayEvents.length - 3} lainnya</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Next month leading days to complete grid
+  const totalSlots = firstDayIndex + daysInMonth;
+  const remainingSlots = (7 - (totalSlots % 7)) % 7;
+  for (let j = 1; j <= remainingSlots; j++) {
+    html += `
+      <div class="cal-day other-month">
+        <div class="cal-day-num">${j}</div>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+function prevMonth() {
+  calState.currentDate.setMonth(calState.currentDate.getMonth() - 1);
+  renderCalendarPage();
+}
+
+function nextMonth() {
+  calState.currentDate.setMonth(calState.currentDate.getMonth() + 1);
+  renderCalendarPage();
+}
+
+function goToToday() {
+  calState.currentDate = new Date();
+  renderCalendarPage();
+}
+
+function setCategoryFilter(cat) {
+  calState.selectedCategory = cat;
+  renderCalendarPage();
+}
+
+function handleDayClick(year, month, day) {
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+  if (isAdmin) {
+    const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    openEventModal(null, formattedDate);
+  }
+}
+
+// ── Open Event Detail Modal
+function openEventDetail(eventId) {
+  const ev = DB.getById('events', eventId);
+  if (!ev) return;
+
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+  const container = document.getElementById('event-detail-container');
+  const catLabels = { training: 'Pelatihan', eval: 'Evaluasi Kompetensi', meeting: 'Pertemuan', deadline: 'Tenggat Waktu' };
+
+  container.innerHTML = `
+    <div class="modal-overlay" id="event-detail-modal">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge ${ev.category === 'training' ? 'badge-green' : ev.category === 'meeting' ? 'badge-blue' : ev.category === 'eval' ? 'badge-yellow' : 'badge-red'}">
+              ${catLabels[ev.category] || ev.category}
+            </span>
+            <h3 class="text-base font-bold" style="color:var(--heading)">Detail Kegiatan</h3>
+          </div>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('event-detail-modal')">
+            <i data-lucide="x" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <h2 class="text-lg font-bold" style="color:var(--heading);margin-bottom:8px">${ev.title}</h2>
+          <p style="font-size:13px;color:var(--body);line-height:1.6;margin-bottom:16px">${ev.description || 'Tidak ada deskripsi rinci.'}</p>
+
+          <div style="display:flex;flex-direction:column;gap:8px;background:var(--ivory);padding:12px;border-radius:var(--radius-md);border:1px solid var(--border);font-size:12px">
+            <div>
+              <span style="color:var(--muted);display:block">Waktu:</span>
+              <strong>${formatDateTime(ev.start_at)} — ${formatTime(ev.end_at)} WIB</strong>
+            </div>
+            <div>
+              <span style="color:var(--muted);display:block">Lokasi / Tautan:</span>
+              <strong>${ev.location || 'Online'}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          ${isAdmin ? `
+            <button class="btn btn-danger-outline btn-sm" onclick="deleteEvent('${ev.id}')">Hapus Jadwal</button>
+          ` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="closeModal('event-detail-modal')">Tutup</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal('event-detail-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function deleteEvent(eventId) {
+  confirmDialog('Apakah Anda yakin ingin membatalkan jadwal ini?', () => {
+    DB.delete('events', eventId);
+    showToast('Jadwal kegiatan berhasil dihapus.', 'info');
+    closeModal('event-detail-modal');
+    renderCalendarPage();
+  }, { title: 'Hapus Kegiatan', danger: true, confirmText: 'Hapus' });
+}
+
+// ── Open Add Event Modal
+function openEventModal(eventId = null, defaultDate = null) {
+  const container = document.getElementById('event-modal-container');
+  const initialDate = defaultDate || new Date().toISOString().split('T')[0];
+
+  container.innerHTML = `
+    <div class="modal-overlay" id="event-modal">
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <h3 class="text-lg font-bold">Jadwalkan Kegiatan Baru</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('event-modal')">
+            <i data-lucide="x" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+        <form onsubmit="handleSaveEvent(event)">
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Nama Kegiatan <span class="required">*</span></label>
+              <input type="text" class="form-input" id="ev-title" required placeholder="Contoh: Pelatihan Data Visualization Sesi 2">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">Kategori Kegiatan <span class="required">*</span></label>
+                <select class="form-input" id="ev-cat" required>
+                  <option value="training">Pelatihan (Training)</option>
+                  <option value="meeting">Pertemuan (Meeting / Townhall)</option>
+                  <option value="eval">Evaluasi Kompetensi</option>
+                  <option value="deadline">Batas Tenggat (Deadline)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Lokasi / Ruangan <span class="required">*</span></label>
+                <input type="text" class="form-input" id="ev-loc" required placeholder="Contoh: Ruang Pelatihan A / Zoom Link">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">Waktu Mulai <span class="required">*</span></label>
+                <input type="datetime-local" class="form-input" id="ev-start" value="${initialDate}T09:00" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Waktu Selesai <span class="required">*</span></label>
+                <input type="datetime-local" class="form-input" id="ev-end" value="${initialDate}T12:00" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Deskripsi & Keterangan</label>
+              <textarea class="form-input" id="ev-desc" rows="3" placeholder="Informasi materi, agenda, atau instruksi kehadiran..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('event-modal')">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan ke Kalender</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  openModal('event-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function handleSaveEvent(e) {
+  e.preventDefault();
+  const newEv = {
+    id: DB.generateId('ev'),
+    title: document.getElementById('ev-title').value.trim(),
+    category: document.getElementById('ev-cat').value,
+    location: document.getElementById('ev-loc').value.trim(),
+    start_at: document.getElementById('ev-start').value,
+    end_at: document.getElementById('ev-end').value,
+    description: document.getElementById('ev-desc').value.trim(),
+    created_by: currentUser.id,
+  };
+
+  DB.insert('events', newEv);
+  showToast('Kegiatan baru berhasil dijadwalkan!', 'success');
+  closeModal('event-modal');
+  renderCalendarPage();
+}
+
+// ── Startup
+document.addEventListener('DOMContentLoaded', () => {
+  initCalendar();
+});
+</script>
+</body>
+</html>

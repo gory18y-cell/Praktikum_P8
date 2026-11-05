@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manajemen SDM — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>const currentUser = Auth.require(['admin','manager']);</script>
+<div id="shell-root"></div>
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('sdm', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let state = {
+  users: [],
+  filtered: [],
+  page: 1,
+  perPage: 10,
+  search: '',
+  filterUnit: '',
+  filterRole: '',
+  filterStatus: '',
+  sortCol: 'full_name',
+  sortAsc: true,
+  editingId: null,
+};
+
+function initSDM() {
+  state.users = DB.getUsers();
+  applyFilters();
+  renderSDMPage();
+}
+
+function applyFilters() {
+  let result = [...state.users];
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    result = result.filter(u => u.full_name.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (u.id||'').toLowerCase().includes(q));
+  }
+  if (state.filterUnit) result = result.filter(u => u.unit_id === state.filterUnit);
+  if (state.filterRole) result = result.filter(u => u.role === state.filterRole);
+  if (state.filterStatus) result = result.filter(u => u.employment_status === state.filterStatus);
+
+  result.sort((a, b) => {
+    const va = (a[state.sortCol]||'').toString().toLowerCase();
+    const vb = (b[state.sortCol]||'').toString().toLowerCase();
+    return state.sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  state.filtered = result;
+  state.page = 1;
+}
+
+function renderSDMPage() {
+  const units = DB.getAll('organizational_units');
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{label:'TUMBUH',url:'dashboard.html'},{label:'Manajemen SDM'}])}
+    <div class="page-header">
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">Manajemen SDM</h1>
+          <p class="page-subtitle">${state.filtered.length} dari ${state.users.length} pegawai ditampilkan</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary btn-sm" onclick="exportSDM()">
+            <i data-lucide="download" style="width:14px;height:14px"></i> Ekspor CSV
+          </button>
+          ${currentUser.role === 'admin' ? `<button class="btn btn-primary btn-sm" onclick="openAddModal()">
+            <i data-lucide="user-plus" style="width:14px;height:14px"></i> Tambah Pegawai
+          </button>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="search-box" style="flex:1;min-width:200px;max-width:360px">
+        <i data-lucide="search" style="width:16px;height:16px;color:var(--body);flex-shrink:0"></i>
+        <input type="text" placeholder="Cari nama, email, atau ID..." value="${state.search}" oninput="doSearch(this.value)" style="border:none;outline:none;background:transparent;font-size:var(--text-sm);color:var(--heading);width:100%">
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Unit:</span>
+        <select class="filter-select" onchange="doFilterUnit(this.value)">
+          <option value="">Semua Unit</option>
+          ${units.map(u => `<option value="${u.id}" ${state.filterUnit===u.id?'selected':''}>${u.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Peran:</span>
+        <select class="filter-select" onchange="doFilterRole(this.value)">
+          <option value="">Semua Peran</option>
+          <option value="admin" ${state.filterRole==='admin'?'selected':''}>Admin</option>
+          <option value="employee" ${state.filterRole==='employee'?'selected':''}>Pegawai</option>
+          <option value="manager" ${state.filterRole==='manager'?'selected':''}>Pimpinan</option>
+          <option value="learner" ${state.filterRole==='learner'?'selected':''}>Peserta</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Status:</span>
+        <select class="filter-select" onchange="doFilterStatus(this.value)">
+          <option value="">Semua Status</option>
+          <option value="Aktif" ${state.filterStatus==='Aktif'?'selected':''}>Aktif</option>
+          <option value="Cuti" ${state.filterStatus==='Cuti'?'selected':''}>Cuti</option>
+          <option value="Tidak Aktif" ${state.filterStatus==='Tidak Aktif'?'selected':''}>Tidak Aktif</option>
+        </select>
+      </div>
+      ${state.search||state.filterUnit||state.filterRole||state.filterStatus ? `
+        <button class="btn btn-ghost btn-sm" onclick="clearFilters()">
+          <i data-lucide="x" style="width:14px;height:14px"></i> Hapus Filter
+        </button>` : ''}
+    </div>
+
+    <!-- Table -->
+    <div class="card card-flush">
+      <div class="table-wrapper">
+        <table class="data-table" id="sdm-table">
+          <thead>
+            <tr>
+              <th>Pegawai</th>
+              <th class="sortable" data-col="id" onclick="doSort('id')">ID ${state.sortCol==='id'?(state.sortAsc?'↑':'↓'):''}</th>
+              <th class="sortable" data-col="position" onclick="doSort('position')">Jabatan ${state.sortCol==='position'?(state.sortAsc?'↑':'↓'):''}</th>
+              <th>Unit Kerja</th>
+              <th>Peran</th>
+              <th>Status</th>
+              <th class="sortable" data-col="joined_at" onclick="doSort('joined_at')">Bergabung ${state.sortCol==='joined_at'?(state.sortAsc?'↑':'↓'):''}</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="sdm-tbody">
+            ${renderSDMRows()}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:var(--space-4) var(--space-5);border-top:1px solid var(--border)">
+        ${renderSDMPagination()}
+      </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay hidden" id="sdm-modal">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <h3 id="modal-title">Tambah Pegawai</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('sdm-modal')">
+            <i data-lucide="x" style="width:20px;height:20px"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="sdm-form" onsubmit="handleSaveSDM(event)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+              <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label" for="f-name">Nama Lengkap <span class="required">*</span></label>
+                <input class="form-input" type="text" id="f-name" placeholder="Nama lengkap pegawai" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-email">Email <span class="required">*</span></label>
+                <input class="form-input" type="email" id="f-email" placeholder="email@contoh.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-phone">Nomor Telepon</label>
+                <input class="form-input" type="tel" id="f-phone" placeholder="08xxxxxxxxxx">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-position">Jabatan <span class="required">*</span></label>
+                <input class="form-input" type="text" id="f-position" placeholder="Contoh: Pengembang Frontend" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-unit">Unit Kerja <span class="required">*</span></label>
+                <select class="form-select" id="f-unit" required>
+                  <option value="">Pilih unit kerja</option>
+                  ${units.map(u => `<option value="${u.id}">${u.name}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-role">Peran <span class="required">*</span></label>
+                <select class="form-select" id="f-role" required>
+                  <option value="employee">Pegawai / Pendidik</option>
+                  <option value="manager">Pimpinan / Manajer</option>
+                  <option value="learner">Peserta Belajar</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-status">Status Kepegawaian</label>
+                <select class="form-select" id="f-status">
+                  <option value="Aktif">Aktif</option>
+                  <option value="Cuti">Cuti</option>
+                  <option value="Tidak Aktif">Tidak Aktif</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-joined">Tanggal Bergabung</label>
+                <input class="form-input" type="date" id="f-joined" value="${new Date().toISOString().split('T')[0]}">
+              </div>
+              <div class="form-group" id="f-password-group">
+                <label class="form-label" for="f-password">Kata Sandi <span class="required">*</span></label>
+                <input class="form-input" type="password" id="f-password" placeholder="Min. 8 karakter">
+                <span class="form-hint">Kosongkan jika tidak ingin mengubah (saat edit)</span>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('sdm-modal')">Batal</button>
+          <button class="btn btn-primary" onclick="handleSaveSDM()">
+            <i data-lucide="save" style="width:14px;height:14px"></i>
+            <span id="save-btn-text">Simpan</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay hidden" id="sdm-detail-modal">
+      <div class="modal modal-xl">
+        <div class="modal-header">
+          <h3>Detail Profil Pegawai</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('sdm-detail-modal')">
+            <i data-lucide="x" style="width:20px;height:20px"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="sdm-detail-body">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+  setupDropdowns();
+}
+
+function renderSDMRows() {
+  const start = (state.page - 1) * state.perPage;
+  const end = start + state.perPage;
+  const pageData = state.filtered.slice(start, end);
+  const units = DB.getAll('organizational_units');
+
+  if (pageData.length === 0) {
+    return `<tr><td colspan="8">${emptyStateHTML('users', 'Tidak Ada Data', 'Tidak ada pegawai yang sesuai dengan filter aktif.', state.search?'':'Tambah Pegawai', state.search?'':'openAddModal()')}</td></tr>`;
+  }
+
+  return pageData.map(u => {
+    const unit = units.find(un => un.id === u.unit_id);
+    return `
+      <tr>
+        <td>
+          <div class="user-cell">
+            <div class="avatar avatar-sm" style="background:${getAvatarColor(u.id)}20;color:${getAvatarColor(u.id)};font-weight:700">${getInitials(u.full_name)}</div>
+            <div class="user-cell-info">
+              <div class="user-name">${u.full_name}</div>
+              <div class="user-email">${u.email}</div>
+            </div>
+          </div>
+        </td>
+        <td><span style="font-size:var(--text-xs);font-family:monospace;background:var(--ivory);padding:2px 6px;border-radius:4px">${u.id}</span></td>
+        <td>${u.position || '-'}</td>
+        <td style="font-size:var(--text-xs)">${unit?.name || '-'}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td>${statusBadge(u.employment_status || 'Aktif')}</td>
+        <td style="font-size:var(--text-xs)">${formatDateShort(u.joined_at)}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Detail" onclick="openDetailModal('${u.id}')">
+              <i data-lucide="eye" style="width:14px;height:14px"></i>
+            </button>
+            ${currentUser.role === 'admin' ? `
+            <button class="btn btn-ghost btn-sm btn-icon" title="Edit" onclick="openEditModal('${u.id}')">
+              <i data-lucide="edit-2" style="width:14px;height:14px"></i>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Hapus" onclick="deleteUser('${u.id}')" style="color:var(--danger)">
+              <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+            </button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderSDMPagination() {
+  const total = state.filtered.length;
+  const pages = Math.ceil(total / state.perPage);
+  const start = (state.page - 1) * state.perPage + 1;
+  const end = Math.min(state.page * state.perPage, total);
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <span style="font-size:var(--text-sm);color:var(--body)">Menampilkan ${start}–${end} dari ${total} data</span>
+    <div class="pagination">
+      <button class="page-btn" ${state.page<=1?'disabled':''} onclick="goPage(${state.page-1})">‹</button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (pages > 7 && Math.abs(i - state.page) > 2 && i !== 1 && i !== pages) { if (Math.abs(i-state.page)===3) html += `<span class="page-btn">…</span>`; continue; }
+    html += `<button class="page-btn ${i===state.page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" ${state.page>=pages?'disabled':''} onclick="goPage(${state.page+1})">›</button></div></div>`;
+  return html;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function doSearch(val) { state.search = val; applyFilters(); refreshTable(); }
+function doFilterUnit(val) { state.filterUnit = val; applyFilters(); refreshTable(); }
+function doFilterRole(val) { state.filterRole = val; applyFilters(); refreshTable(); }
+function doFilterStatus(val) { state.filterStatus = val; applyFilters(); refreshTable(); }
+function clearFilters() { state.search=''; state.filterUnit=''; state.filterRole=''; state.filterStatus=''; applyFilters(); renderSDMPage(); }
+function goPage(p) { state.page = p; refreshTable(); }
+function doSort(col) { if (state.sortCol===col) state.sortAsc=!state.sortAsc; else { state.sortCol=col; state.sortAsc=true; } applyFilters(); refreshTable(); }
+
+function refreshTable() {
+  const tbody = document.getElementById('sdm-tbody');
+  if (tbody) tbody.innerHTML = renderSDMRows();
+  const pag = document.querySelector('#main-content .card.card-flush > div:last-child');
+  if (pag) pag.innerHTML = renderSDMPagination();
+  const sub = document.querySelector('.page-subtitle');
+  if (sub) sub.textContent = `${state.filtered.length} dari ${state.users.length} pegawai ditampilkan`;
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function openAddModal() {
+  state.editingId = null;
+  document.getElementById('modal-title').textContent = 'Tambah Pegawai';
+  document.getElementById('save-btn-text').textContent = 'Simpan Pegawai';
+  document.getElementById('f-password-group').querySelector('label').innerHTML = 'Kata Sandi <span class="required">*</span>';
+  document.getElementById('sdm-form').reset();
+  document.getElementById('f-joined').value = new Date().toISOString().split('T')[0];
+  openModal('sdm-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function openEditModal(userId) {
+  const user = DB.getById('users', userId);
+  if (!user) return;
+  state.editingId = userId;
+  document.getElementById('modal-title').textContent = 'Edit Profil Pegawai';
+  document.getElementById('save-btn-text').textContent = 'Simpan Perubahan';
+  document.getElementById('f-name').value = user.full_name;
+  document.getElementById('f-email').value = user.email;
+  document.getElementById('f-phone').value = user.phone || '';
+  document.getElementById('f-position').value = user.position || '';
+  document.getElementById('f-unit').value = user.unit_id || '';
+  document.getElementById('f-role').value = user.role || 'employee';
+  document.getElementById('f-status').value = user.employment_status || 'Aktif';
+  document.getElementById('f-joined').value = user.joined_at || '';
+  document.getElementById('f-password').value = '';
+  document.getElementById('f-password-group').querySelector('label').innerHTML = 'Kata Sandi <span style="color:var(--body);font-weight:400">(opsional)</span>';
+  openModal('sdm-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function handleSaveSDM() {
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const position = document.getElementById('f-position').value.trim();
+  const unit_id = document.getElementById('f-unit').value;
+  const role = document.getElementById('f-role').value;
+  const employment_status = document.getElementById('f-status').value;
+  const joined_at = document.getElementById('f-joined').value;
+  const password = document.getElementById('f-password').value;
+
+  if (!name || !email || !position || !unit_id) { showToast('Mohon lengkapi semua field wajib.', 'error'); return; }
+  if (!state.editingId && !password) { showToast('Kata sandi wajib diisi untuk pegawai baru.', 'error'); return; }
+  if (password && password.length < 8) { showToast('Kata sandi minimal 8 karakter.', 'error'); return; }
+
+  // Check duplicate email
+  const existingEmail = DB.data.users.find(u => u.email === email && u.id !== state.editingId);
+  if (existingEmail) { showToast('Email sudah digunakan oleh pengguna lain.', 'error'); return; }
+
+  if (state.editingId) {
+    const updates = { full_name: name, email, phone, position, unit_id, role, employment_status, joined_at };
+    if (password) updates.password = password;
+    DB.update('users', state.editingId, updates);
+    showToast(`Data ${name} berhasil diperbarui.`, 'success');
+  } else {
+    const newUser = {
+      id: DB.generateId('u'),
+      full_name: name, email, phone, position, unit_id, role, employment_status, joined_at,
+      password: password, avatar: null, created_at: new Date().toISOString(),
+    };
+    DB.insert('users', newUser);
+    showToast(`Pegawai ${name} berhasil ditambahkan.`, 'success');
+  }
+
+  closeModal('sdm-modal');
+  state.users = DB.getUsers();
+  applyFilters();
+  renderSDMPage();
+}
+
+function deleteUser(userId) {
+  const user = DB.getById('users', userId);
+  if (!user) return;
+  if (userId === currentUser.id) { showToast('Tidak dapat menghapus akun yang sedang aktif.', 'error'); return; }
+  confirmDialog(
+    `Apakah Anda yakin ingin menghapus pegawai <strong>${user.full_name}</strong>? Tindakan ini tidak dapat dibatalkan.`,
+    () => {
+      DB.delete('users', userId);
+      showToast(`Pegawai ${user.full_name} berhasil dihapus.`, 'success');
+      state.users = DB.getUsers();
+      applyFilters();
+      renderSDMPage();
+    },
+    { title: 'Hapus Pegawai', confirmText: 'Ya, Hapus', danger: true }
+  );
+}
+
+function openDetailModal(userId) {
+  const userDetails = DB.getUserWithDetails(userId);
+  if (!userDetails) return;
+  const unit = userDetails.unit;
+
+  const body = document.getElementById('sdm-detail-body');
+  body.innerHTML = `
+    <!-- Profile Header -->
+    <div style="background:linear-gradient(135deg,var(--primary) 0%,var(--emerald) 100%);border-radius:var(--radius-lg);padding:var(--space-6);margin-bottom:var(--space-6)">
+      <div style="display:flex;align-items:center;gap:var(--space-4)">
+        <div class="avatar avatar-xl" style="background:rgba(255,255,255,.2);color:white;font-size:1.5rem">
+          ${getInitials(userDetails.full_name)}
+        </div>
+        <div>
+          <h2 style="color:white;font-size:var(--text-xl);margin-bottom:4px">${userDetails.full_name}</h2>
+          <p style="color:rgba(255,255,255,.7);font-size:var(--text-sm)">${userDetails.position || 'Tidak ada jabatan'}</p>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            ${roleBadge(userDetails.role)}
+            ${statusBadge(userDetails.employment_status || 'Aktif')}
+          </div>
+        </div>
+        ${currentUser.role === 'admin' ? `<button class="btn btn-sm" style="margin-left:auto;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3)" onclick="closeModal('sdm-detail-modal');openEditModal('${userDetails.id}')">
+          <i data-lucide="edit-2" style="width:14px;height:14px"></i> Edit
+        </button>` : ''}
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="detail-tabs">
+      <button class="tab-btn active" data-tab="tab-info" onclick="switchDetailTab(this,'tab-info')">Informasi</button>
+      <button class="tab-btn" data-tab="tab-programs" onclick="switchDetailTab(this,'tab-programs')">Program (${userDetails.programs.length})</button>
+      <button class="tab-btn" data-tab="tab-competencies" onclick="switchDetailTab(this,'tab-competencies')">Kompetensi (${userDetails.competencies.length})</button>
+      <button class="tab-btn" data-tab="tab-certs" onclick="switchDetailTab(this,'tab-certs')">Sertifikat (${userDetails.certificates.length})</button>
+    </div>
+
+    <!-- Tab: Info -->
+    <div id="tab-info">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+        ${[
+          ['Email', userDetails.email],
+          ['Telepon', userDetails.phone||'-'],
+          ['Unit Kerja', unit?.name||'-'],
+          ['Tanggal Bergabung', formatDate(userDetails.joined_at)],
+          ['ID Pegawai', userDetails.id],
+        ].map(([label,val]) => `
+          <div style="padding:var(--space-3);background:var(--ivory);border-radius:var(--radius-md)">
+            <div style="font-size:var(--text-xs);color:var(--body);margin-bottom:4px">${label}</div>
+            <div style="font-size:var(--text-sm);font-weight:600;color:var(--heading)">${val}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Tab: Programs -->
+    <div id="tab-programs" class="hidden">
+      ${userDetails.programs.length === 0
+        ? '<p style="color:var(--body);text-align:center;padding:24px">Belum mengikuti program apapun.</p>'
+        : `<div style="display:flex;flex-direction:column;gap:var(--space-3)">
+          ${userDetails.programs.map(ep => `
+            <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);background:var(--ivory);border-radius:var(--radius-md);border:1px solid var(--border)">
+              <div style="width:40px;height:40px;border-radius:8px;background:${ep.program.cover_color};display:flex;align-items:center;justify-content:center;font-size:1.2rem">${ep.program.cover_icon}</div>
+              <div style="flex:1">
+                <div style="font-weight:600;font-size:var(--text-sm)">${ep.program.title}</div>
+                <div style="font-size:var(--text-xs);color:var(--body)">${ep.program.category}</div>
+                <div style="margin-top:4px">${progressBarHTML(ep.progress)}</div>
+              </div>
+              <div style="text-align:right">
+                ${statusBadge(ep.status)}
+                <div style="font-size:11px;color:var(--body);margin-top:4px">${ep.progress}%</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>`}
+    </div>
+
+    <!-- Tab: Competencies -->
+    <div id="tab-competencies" class="hidden">
+      ${userDetails.competencies.length === 0
+        ? '<p style="color:var(--body);text-align:center;padding:24px">Belum ada evaluasi kompetensi.</p>'
+        : `<div style="display:flex;flex-direction:column;gap:var(--space-3)">
+          ${userDetails.competencies.map(ca => `
+            <div class="competency-bar-item">
+              <div class="competency-bar-header">
+                <span class="competency-bar-label">${ca.competency?.name||'Kompetensi'}</span>
+                <div class="competency-bar-scores">
+                  <span class="competency-bar-current">${ca.score}/5</span>
+                  <span class="competency-bar-target">Target: ${ca.target_score}/5</span>
+                </div>
+              </div>
+              <div class="competency-bar-track">
+                <div class="competency-bar-fill" style="width:${(ca.score/5)*100}%"></div>
+                <div class="competency-bar-target-mark" style="left:${(ca.target_score/5)*100}%"></div>
+              </div>
+              <p style="font-size:var(--text-xs);color:var(--body);margin-top:4px">${ca.notes||''}</p>
+            </div>
+          `).join('')}
+        </div>`}
+    </div>
+
+    <!-- Tab: Certificates -->
+    <div id="tab-certs" class="hidden">
+      ${userDetails.certificates.length === 0
+        ? '<p style="color:var(--body);text-align:center;padding:24px">Belum ada sertifikat.</p>'
+        : `<div style="display:flex;flex-direction:column;gap:var(--space-3)">
+          ${userDetails.certificates.map(cert => {
+            const prog = DB.getById('programs', cert.program_id);
+            return `
+              <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4);background:var(--mint-light);border-radius:var(--radius-md);border:1px solid var(--mint)">
+                <div style="width:44px;height:44px;background:var(--yellow);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center">
+                  <i data-lucide="award" style="width:22px;height:22px;color:#8A6210"></i>
+                </div>
+                <div style="flex:1">
+                  <div style="font-weight:700;color:var(--heading)">${prog?.title||'Program'}</div>
+                  <div style="font-size:var(--text-xs);color:var(--body)">No. ${cert.certificate_number} · ${formatDateShort(cert.issued_at)}</div>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="downloadCertificate('${cert.id}')" title="Unduh Sertifikat">
+                  <i data-lucide="download" style="width:14px;height:14px"></i>
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>`}
+    </div>
+  `;
+  openModal('sdm-detail-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function switchDetailTab(btn, tabId) {
+  document.querySelectorAll('#sdm-detail-body .tab-btn').forEach(b => b.classList.remove('active'));
+  ['tab-info','tab-programs','tab-competencies','tab-certs'].forEach(t => {
+    const el = document.getElementById(t);
+    if (el) el.classList.add('hidden');
+  });
+  btn.classList.add('active');
+  const target = document.getElementById(tabId);
+  if (target) target.classList.remove('hidden');
+}
+
+function exportSDM() {
+  exportCSV(state.filtered, 'pegawai_tumbuh.csv', [
+    { label: 'ID', key: 'id' },
+    { label: 'Nama', key: 'full_name' },
+    { label: 'Email', key: 'email' },
+    { label: 'Telepon', key: 'phone' },
+    { label: 'Jabatan', key: 'position' },
+    { label: 'Peran', key: 'role' },
+    { label: 'Status', key: 'employment_status' },
+    { label: 'Bergabung', key: 'joined_at' },
+  ]);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initSDM();
+  setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 200);
+});
+</script>
+</body>
+</html>

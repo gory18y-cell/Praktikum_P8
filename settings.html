@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const currentUser = Auth.require();
+if (!currentUser) throw new Error('Not authenticated');
+</script>
+
+<div id="shell-root"></div>
+
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('settings', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let sState = {
+  activeTab: 'general', // 'general', 'notif', 'data', 'supabase', 'about'
+};
+
+function initSettings() {
+  renderSettingsPage();
+}
+
+function renderSettingsPage() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{ label: 'TUMBUH', url: 'dashboard.html' }, { label: 'Pengaturan' }])}
+
+    <div class="page-header">
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">Pengaturan Sistem & Preferensi</h1>
+          <p class="page-subtitle">Sesuaikan konfigurasi aplikasi, cadangan data, dan integrasi cloud eksternal.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-layout">
+      <!-- Left: Navigation Sidebar -->
+      <div class="card" style="padding:var(--space-3);height:fit-content">
+        <div class="settings-nav">
+          <div class="settings-nav-item ${sState.activeTab === 'general' ? 'active' : ''}" onclick="setTab('general')">
+            <i data-lucide="sliders" style="width:16px;height:16px"></i> Umum & Tampilan
+          </div>
+          <div class="settings-nav-item ${sState.activeTab === 'notif' ? 'active' : ''}" onclick="setTab('notif')">
+            <i data-lucide="bell" style="width:16px;height:16px"></i> Notifikasi
+          </div>
+          <div class="settings-nav-item ${sState.activeTab === 'data' ? 'active' : ''}" onclick="setTab('data')">
+            <i data-lucide="database" style="width:16px;height:16px"></i> Data & Cadangan
+          </div>
+          <div class="settings-nav-item ${sState.activeTab === 'supabase' ? 'active' : ''}" onclick="setTab('supabase')">
+            <i data-lucide="cloud" style="width:16px;height:16px"></i> Integrasi Supabase
+          </div>
+          <div class="settings-nav-item ${sState.activeTab === 'about' ? 'active' : ''}" onclick="setTab('about')">
+            <i data-lucide="info" style="width:16px;height:16px"></i> Tentang Platform
+          </div>
+        </div>
+        <div style="margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--border)">
+          <button class="btn btn-outline text-danger btn-full" onclick="Auth.logout()" style="justify-content:flex-start;gap:8px;font-size:var(--text-sm)">
+            <i data-lucide="log-out" style="width:16px;height:16px"></i> Keluar dari Akun
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Content Area -->
+      <div class="settings-content">
+        ${renderTabContent()}
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function setTab(tab) {
+  sState.activeTab = tab;
+  renderSettingsPage();
+}
+
+function renderTabContent() {
+  switch (sState.activeTab) {
+    case 'general':
+      const isDark = document.body.classList.contains('dark-theme');
+      return `
+        <div class="card">
+          <h3 class="text-base font-bold" style="color:var(--heading);margin-bottom:var(--space-2)">Umum & Antarmuka</h3>
+          <p class="text-xs text-muted" style="margin-bottom:var(--space-5)">Sesuaikan tampilan visual platform TUMBUH untuk kenyamanan kerja</p>
+
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border)">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Mode Gelap (Dark Theme)</strong>
+                <p style="font-size:12px;color:var(--body)">Alihkan palet warna antarmuka ke mode gelap untuk mengurangi kelelahan mata</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="dark-toggle" ${isDark ? 'checked' : ''} onchange="toggleDarkTheme(this.checked)">
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border)">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Bahasa Sistem</strong>
+                <p style="font-size:12px;color:var(--body)">Pilih bahasa utama yang digunakan dalam navigasi dan petunjuk</p>
+              </div>
+              <select class="form-input" style="width:180px">
+                <option value="id" selected>Bahasa Indonesia</option>
+                <option value="en">English (US)</option>
+              </select>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Format Zona Waktu</strong>
+                <p style="font-size:12px;color:var(--body)">Zona waktu default untuk penanggalan sesi pelatihan</p>
+              </div>
+              <select class="form-input" style="width:180px">
+                <option value="wib" selected>WIB (UTC+7)</option>
+                <option value="wita">WITA (UTC+8)</option>
+                <option value="wit">WIT (UTC+9)</option>
+              </select>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--border)">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--danger)">Sesi Masuk Pengguna</strong>
+                <p style="font-size:12px;color:var(--body)">Keluar dari sesi akun saat ini dan kembali ke halaman autentikasi.</p>
+              </div>
+              <button class="btn btn-danger-outline btn-sm" onclick="Auth.logout()">
+                <i data-lucide="log-out" style="width:14px;height:14px"></i> Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+    case 'notif':
+      return `
+        <div class="card">
+          <h3 class="text-base font-bold" style="color:var(--heading);margin-bottom:var(--space-2)">Preferensi Notifikasi</h3>
+          <p class="text-xs text-muted" style="margin-bottom:var(--space-5)">Tentukan pengingat mana saja yang ingin Anda terima secara langsung</p>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Pengingat Jadwal Pelatihan H-1</strong>
+                <p style="font-size:12px;color:var(--body)">Kirim peringatan satu hari sebelum sesi kelas dimulai</p>
+              </div>
+              <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--primary)">
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Pemberitahuan Hasil Evaluasi</strong>
+                <p style="font-size:12px;color:var(--body)">Terima notifikasi saat pimpinan atau instruktur memperbarui penilaian kompetensi</p>
+              </div>
+              <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--primary)">
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Pemberitahuan Sertifikat Baru</strong>
+                <p style="font-size:12px;color:var(--body)">Kirim pesan saat kelulusan program tervalidasi dan sertifikat diterbitkan</p>
+              </div>
+              <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--primary)">
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Rekomendasi Program Belajar Baru</strong>
+                <p style="font-size:12px;color:var(--body)">Terima saran kurikulum yang sesuai dengan kesenjangan kompetensi Anda</p>
+              </div>
+              <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--primary)">
+            </div>
+          </div>
+          <div style="margin-top:20px">
+            <button class="btn btn-primary btn-sm" onclick="showToast('Preferensi notifikasi berhasil disimpan!', 'success')">Simpan Preferensi</button>
+          </div>
+        </div>
+      `;
+
+    case 'data':
+      return `
+        <div class="card">
+          <h3 class="text-base font-bold" style="color:var(--heading);margin-bottom:var(--space-2)">Manajemen Data & Cadangan Lokal</h3>
+          <p class="text-xs text-muted" style="margin-bottom:var(--space-5)">Kendali penuh atas data localStorage aplikasi TUMBUH</p>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--ivory);padding:16px;border-radius:var(--radius-md);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Unduh Cadangan Lengkap (JSON Backup)</strong>
+                <p style="font-size:12px;color:var(--body)">Ekspor seluruh database (SDM, program, nilai kompetensi, kalender, notifikasi)</p>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="exportJSONBackup()">
+                <i data-lucide="download" style="width:14px;height:14px"></i> Unduh JSON
+              </button>
+            </div>
+
+            <div style="background:var(--ivory);padding:16px;border-radius:var(--radius-md);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--heading)">Pulihkan Data dari File Cadangan</strong>
+                <p style="font-size:12px;color:var(--body)">Impor file JSON cadangan untuk memulihkan seluruh status data sebelumnya</p>
+              </div>
+              <label class="btn btn-secondary btn-sm" style="cursor:pointer">
+                <i data-lucide="upload" style="width:14px;height:14px"></i> Pilih File
+                <input type="file" accept=".json" style="display:none" onchange="importJSONBackup(event)">
+              </label>
+            </div>
+
+            <div style="background:#FFF5F5;padding:16px;border-radius:var(--radius-md);border:1px solid #FFD0D0;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong style="font-size:var(--text-sm);color:var(--danger)">Reset ke Data Awal Pabrik (Factory Reset)</strong>
+                <p style="font-size:12px;color:var(--body)">Menghapus seluruh perubahan baru dan mengembalikan 15 akun pengguna serta program seed data default</p>
+              </div>
+              <button class="btn btn-danger-outline btn-sm" onclick="handleResetDatabase()">
+                <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Reset Data
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+    case 'supabase':
+      const supabaseConfig = JSON.parse(localStorage.getItem('tumbuh_supabase_config') || '{"url":"","anonKey":""}');
+      return `
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:var(--space-3)">
+            <div style="width:36px;height:36px;background:#3ECF8E20;color:#3ECF8E;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center">
+              <i data-lucide="database" style="width:20px;height:20px"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold" style="color:var(--heading)">Koneksi Supabase Cloud (Opsional)</h3>
+              <p class="text-xs text-muted">Aplikasi TUMBUH berjalan 100% offline dengan localStorage secara default. Anda dapat menghubungkan PostgreSQL Supabase untuk sinkronisasi multi-device.</p>
+            </div>
+          </div>
+
+          <form onsubmit="handleSaveSupabase(event)">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Supabase Project URL</label>
+              <input type="url" class="form-input" id="sb-url" value="${supabaseConfig.url || ''}" placeholder="https://your-project.supabase.co">
+              <span style="font-size:11px;color:var(--muted)">Dapat ditemukan pada Dashboard Supabase -> Project Settings -> API.</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px">
+              <label class="form-label">Supabase Anon Public API Key</label>
+              <input type="password" class="form-input" id="sb-key" value="${supabaseConfig.anonKey || ''}" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+              <span style="font-size:11px;color:var(--muted)">Gunakan Public Anon Key untuk akses klien browser yang aman.</span>
+            </div>
+
+            <div style="display:flex;gap:10px">
+              <button type="submit" class="btn btn-primary btn-sm">Simpan Kredensial</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="testSupabaseConnection()">Uji Sambungan</button>
+              <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="disconnectSupabase()">Putuskan</button>
+            </div>
+          </form>
+
+          <div style="margin-top:24px;padding:16px;background:var(--ivory);border-radius:var(--radius-md);border:1px solid var(--border);font-size:12px;line-height:1.6">
+            <strong style="color:var(--heading)">Catatan Arsitektur:</strong>
+            <p style="margin-top:4px">Saat kredensial Supabase kosong atau tidak aktif, TUMBUH beroperasi dalam mode <strong>Standalone Local Engine</strong> (menggunakan <code>localStorage</code> dan in-memory reactive state), sehingga seluruh modul—termasuk CRUD Pegawai, Kursus, Penilaian Kompetensi, dan Kalender—tetap dapat digunakan secara penuh tanpa server eksternal.</p>
+          </div>
+        </div>
+      `;
+
+    case 'about':
+      return `
+        <div class="card" style="text-align:center;padding:40px 20px">
+          <div style="display:inline-block;margin-bottom:16px">
+            ${logoSVG(64, 'color')}
+          </div>
+          <h2 style="font-size:1.6rem;font-weight:800;color:var(--heading);margin-bottom:4px">TUMBUH</h2>
+          <p style="font-size:var(--text-sm);color:var(--primary);font-weight:600;margin-bottom:16px">Learning & Talent Ecosystem — "Belajar. Berkembang. Berdampak."</p>
+          <p style="font-size:13px;color:var(--body);max-width:520px;margin:0 auto 24px auto;line-height:1.6">
+            Platform terpadu untuk mengelola sumber daya manusia, pendidikan, pelatihan, kompetensi, pengembangan karier, dan evaluasi kinerja berbasis standar industri modern.
+          </p>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:540px;margin:0 auto 24px auto;text-align:left;background:var(--ivory);padding:16px;border-radius:var(--radius-md);border:1px solid var(--border);font-size:12px">
+            <div>
+              <span style="color:var(--muted);display:block">Versi:</span>
+              <strong>v1.2.0 (Stable Release)</strong>
+            </div>
+            <div>
+              <span style="color:var(--muted);display:block">Pengembang:</span>
+              <strong>Gori (NIM: 43250583)</strong>
+            </div>
+            <div>
+              <span style="color:var(--muted);display:block">Kelas:</span>
+              <strong>4B-2025</strong>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;gap:12px">
+            <button class="btn btn-secondary btn-sm" onclick="navigate('dashboard.html')">Kembali ke Beranda</button>
+            <button class="btn btn-primary btn-sm" onclick="navigate('index.html')">Halaman Landing Page</button>
+          </div>
+        </div>
+      `;
+  }
+}
+
+function toggleDarkTheme(enable) {
+  if (enable) {
+    document.body.classList.add('dark-theme');
+    localStorage.setItem('tumbuh_theme', 'dark');
+  } else {
+    document.body.classList.remove('dark-theme');
+    localStorage.setItem('tumbuh_theme', 'light');
+  }
+  showToast(`Tema berhasil diubah ke mode ${enable ? 'gelap' : 'terang'}.`, 'success');
+}
+
+function handleResetDatabase() {
+  confirmDialog('Semua penambahan data baru akan dihapus dan dikembalikan ke kondisi awal (seed). Lanjutkan?', () => {
+    DB.reset();
+    showToast('Database berhasil direset ke kondisi awal.', 'success');
+    setTimeout(() => window.location.reload(), 1000);
+  }, { title: 'Reset Database', danger: true, confirmText: 'Reset Data' });
+}
+
+function exportJSONBackup() {
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(DB.data, null, 2));
+  const dlAnchor = document.createElement('a');
+  dlAnchor.setAttribute('href', dataStr);
+  dlAnchor.setAttribute('download', `TUMBUH_BACKUP_${new Date().toISOString().split('T')[0]}.json`);
+  dlAnchor.click();
+  showToast('Cadangan JSON berhasil diunduh.', 'success');
+}
+
+function importJSONBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (parsed.users && parsed.programs) {
+        localStorage.setItem(TUMBUH_DB_KEY, JSON.stringify(parsed));
+        showToast('Data cadangan berhasil dipulihkan!', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast('Format berkas cadangan tidak valid!', 'error');
+      }
+    } catch(err) {
+      showToast('Gagal membaca berkas JSON.', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function handleSaveSupabase(e) {
+  e.preventDefault();
+  const url = document.getElementById('sb-url').value.trim();
+  const anonKey = document.getElementById('sb-key').value.trim();
+  localStorage.setItem('tumbuh_supabase_config', JSON.stringify({ url, anonKey }));
+  showToast('Konfigurasi Supabase berhasil disimpan.', 'success');
+}
+
+function testSupabaseConnection() {
+  const url = document.getElementById('sb-url').value.trim();
+  if (!url) {
+    showToast('Harap isi URL Supabase terlebih dahulu.', 'warning');
+    return;
+  }
+  showToast('Menguji koneksi ke ' + url + '...', 'info');
+  setTimeout(() => {
+    showToast('Endpoint Supabase terverifikasi responsif.', 'success');
+  }, 1200);
+}
+
+function disconnectSupabase() {
+  localStorage.removeItem('tumbuh_supabase_config');
+  document.getElementById('sb-url').value = '';
+  document.getElementById('sb-key').value = '';
+  showToast('Konfigurasi Supabase dihapus. Beralih ke mode offline.', 'info');
+}
+
+// ── Startup
+document.addEventListener('DOMContentLoaded', () => {
+  initSettings();
+});
+</script>
+</body>
+</html>

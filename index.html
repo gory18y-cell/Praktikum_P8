@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TUMBUH — Belajar. Berkembang. Berdampak.</title>
+  <meta name="description" content="TUMBUH adalah platform digital terpadu untuk mengelola sumber daya manusia dan mendukung proses pendidikan serta pengembangan kompetensi.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect width='40' height='40' rx='10' fill='%23086B50'/><text y='28' font-size='22' x='8'>🌱</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/landing.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    .landing-body { background: var(--ivory); }
+    .hero-svg-wrap { position: relative; }
+    .hero-illustration-svg { width: 100%; }
+    .hero-floating-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-4);
+      position: absolute;
+    }
+    .hero-fc-1 { bottom: -20px; left: -30px; min-width: 200px; }
+    .hero-fc-2 { top: 10px; right: -20px; min-width: 160px; }
+
+    .testimonial-section { background: var(--surface); }
+    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); margin-top: var(--space-8); }
+    .testimonial-card { background: var(--ivory); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); }
+    .testimonial-stars { color: var(--warning); font-size: var(--text-sm); margin-bottom: var(--space-2); }
+    .testimonial-text { font-size: var(--text-sm); color: var(--body); line-height: 1.7; margin-bottom: var(--space-4); font-style: italic; }
+    .testimonial-author { display: flex; align-items: center; gap: var(--space-3); }
+    .testimonial-name { font-size: var(--text-sm); font-weight: 700; color: var(--heading); }
+    .testimonial-role { font-size: var(--text-xs); color: var(--body); }
+
+    @media(max-width:768px){
+      .testimonials-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="landing-body">
+
+<!-- Navbar -->
+<nav class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <div class="navbar-logo" onclick="scrollToSection('home')" style="cursor:pointer">
+      <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="10" fill="#DDF4E9"/>
+        <path d="M8 28V14C8 13.4 8.4 13 9 13H19C19.6 13 20 13.4 20 14V28H8Z" fill="#086B50" opacity="0.85"/>
+        <path d="M20 28V14C20 13.4 20.4 13 21 13H31C31.6 13 32 13.4 32 14V28H20Z" fill="#15966F"/>
+        <path d="M7 28H33" stroke="#086B50" stroke-width="2" stroke-linecap="round"/>
+        <path d="M20 13C20 13 20 9 17 7C17 7 20 7 20 10" fill="#086B50" opacity="0.9"/>
+        <path d="M20 13C20 13 20 8 23 6C23 6 20 7 20 10" fill="#15966F"/>
+        <path d="M20 13V7" stroke="#086B50" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="navbar-logo-text">TUMBUH</div>
+        <div class="navbar-logo-tagline">Belajar. Berkembang. Berdampak.</div>
+      </div>
+    </div>
+
+    <div class="navbar-menu" id="navbar-menu">
+      <a class="nav-link active" href="#" onclick="scrollToSection('home')">Beranda</a>
+      <a class="nav-link" href="#" onclick="scrollToSection('features')">Fitur</a>
+      <a class="nav-link" href="#" onclick="scrollToSection('programs')">Program</a>
+      <a class="nav-link" href="#" onclick="scrollToSection('benefits')">Manfaat</a>
+      <a class="nav-link" href="#" onclick="scrollToSection('how')">Cara Kerja</a>
+      <a class="nav-link" href="#" onclick="scrollToSection('about')">Tentang Kami</a>
+    </div>
+
+    <div class="navbar-actions">
+      <a href="login.html" class="btn btn-secondary btn-sm">Masuk</a>
+      <a href="login.html" class="btn btn-primary btn-sm">Daftar</a>
+      <button class="navbar-mobile-toggle btn btn-ghost btn-icon" onclick="toggleMobileMenu()" aria-label="Menu">
+        <i data-lucide="menu" style="width:22px;height:22px"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobile-menu">
+  <a class="nav-link" href="#" onclick="scrollToSection('home');closeMobileMenu()">Beranda</a>
+  <a class="nav-link" href="#" onclick="scrollToSection('features');closeMobileMenu()">Fitur</a>
+  <a class="nav-link" href="#" onclick="scrollToSection('programs');closeMobileMenu()">Program</a>
+  <a class="nav-link" href="#" onclick="scrollToSection('benefits');closeMobileMenu()">Manfaat</a>
+  <a class="nav-link" href="#" onclick="scrollToSection('how');closeMobileMenu()">Cara Kerja</a>
+  <a class="nav-link" href="#" onclick="scrollToSection('about');closeMobileMenu()">Tentang Kami</a>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <a href="login.html" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center">Masuk</a>
+    <a href="login.html" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">Daftar</a>
+  </div>
+</div>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-tag">
+        <i data-lucide="sparkles" style="width:14px;height:14px"></i>
+        Platform SDM & Pendidikan #1 Indonesia
+      </div>
+      <h1 class="hero-title">
+        Setiap perkembangan<br>
+        dimulai dari <span class="highlight">langkah kecil.</span>
+      </h1>
+      <p class="hero-description">
+        TUMBUH adalah platform digital terpadu yang membantu individu, pendidik, dan organisasi mengelola proses belajar, pengembangan kompetensi, dan karier dalam satu ekosistem yang terintegrasi.
+      </p>
+      <div class="hero-actions">
+        <a href="login.html" class="btn btn-primary btn-lg">
+          <i data-lucide="rocket" style="width:18px;height:18px"></i>
+          Mulai Berkembang
+        </a>
+        <button class="btn btn-secondary btn-lg" onclick="scrollToSection('features')">
+          <i data-lucide="play-circle" style="width:18px;height:18px"></i>
+          Jelajahi Fitur
+        </button>
+      </div>
+
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-val">2.400+</div>
+          <div class="hero-stat-lbl">Pengguna Aktif</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">128</div>
+          <div class="hero-stat-lbl">Program Pelatihan</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">86%</div>
+          <div class="hero-stat-lbl">Tingkat Penyelesaian</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">7</div>
+          <div class="hero-stat-lbl">Kategori Kompetensi</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <!-- Hero Dashboard Illustration -->
+      <div style="background:white;border-radius:20px;box-shadow:0 20px 60px rgba(8,107,80,.15);border:1px solid var(--border);overflow:hidden;width:100%;max-width:480px">
+        <!-- Mock Dashboard -->
+        <div style="background:var(--heading);padding:16px 20px;display:flex;align-items:center;gap:12px">
+          <div style="display:flex;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div><div style="width:10px;height:10px;border-radius:50%;background:#febc2e"></div><div style="width:10px;height:10px;border-radius:50%;background:#28c840"></div></div>
+          <div style="flex:1;background:rgba(255,255,255,.1);border-radius:6px;height:24px;display:flex;align-items:center;padding:0 10px">
+            <span style="color:rgba(255,255,255,.5);font-size:11px">dashboard.tumbuh.id</span>
+          </div>
+        </div>
+        <div style="display:flex;height:260px">
+          <!-- Sidebar mock -->
+          <div style="width:54px;background:#1a2e27;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:16px">
+            <div style="width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center">
+              <i data-lucide="layout-dashboard" style="width:14px;height:14px;color:white"></i>
+            </div>
+            <div style="opacity:.4"><i data-lucide="users" style="width:16px;height:16px;color:white"></i></div>
+            <div style="opacity:.4"><i data-lucide="book-open" style="width:16px;height:16px;color:white"></i></div>
+            <div style="opacity:.4"><i data-lucide="star" style="width:16px;height:16px;color:white"></i></div>
+            <div style="opacity:.4"><i data-lucide="bar-chart-2" style="width:16px;height:16px;color:white"></i></div>
+          </div>
+          <!-- Content mock -->
+          <div style="flex:1;padding:14px;overflow:hidden;background:var(--ivory)">
+            <div style="font-size:12px;font-weight:700;color:var(--heading);margin-bottom:10px">Selamat pagi, Rina! 👋</div>
+            <!-- Stats -->
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px">
+              <div style="background:white;border-radius:8px;padding:8px;border:1px solid var(--border)">
+                <div style="font-size:9px;color:var(--body)">Total SDM</div>
+                <div style="font-size:16px;font-weight:800;color:var(--heading)">128</div>
+                <div style="font-size:9px;color:var(--success)">↑ 12% bulan ini</div>
+              </div>
+              <div style="background:white;border-radius:8px;padding:8px;border:1px solid var(--border)">
+                <div style="font-size:9px;color:var(--body)">Program Aktif</div>
+                <div style="font-size:16px;font-weight:800;color:var(--heading)">12</div>
+                <div style="font-size:9px;color:var(--primary)">+5 program baru</div>
+              </div>
+              <div style="background:white;border-radius:8px;padding:8px;border:1px solid var(--border)">
+                <div style="font-size:9px;color:var(--body)">Peserta Belajar</div>
+                <div style="font-size:16px;font-weight:800;color:var(--heading)">86</div>
+                <div style="font-size:9px;color:var(--success)">+8 peserta baru</div>
+              </div>
+              <div style="background:white;border-radius:8px;padding:8px;border:1px solid var(--border)">
+                <div style="font-size:9px;color:var(--body)">Tingkat Selesai</div>
+                <div style="font-size:16px;font-weight:800;color:var(--heading)">78%</div>
+                <div style="font-size:9px;color:var(--success)">↑ 6% vs bulan lalu</div>
+              </div>
+            </div>
+            <!-- Mini chart placeholder -->
+            <div style="background:white;border-radius:8px;padding:8px;border:1px solid var(--border)">
+              <div style="font-size:9px;font-weight:600;color:var(--body);margin-bottom:6px">Tren Partisipasi</div>
+              <div style="display:flex;align-items:flex-end;gap:3px;height:36px">
+                <div style="flex:1;background:var(--mint);border-radius:2px;height:40%"></div>
+                <div style="flex:1;background:var(--mint);border-radius:2px;height:60%"></div>
+                <div style="flex:1;background:var(--mint);border-radius:2px;height:55%"></div>
+                <div style="flex:1;background:var(--mint);border-radius:2px;height:75%"></div>
+                <div style="flex:1;background:var(--mint);border-radius:2px;height:80%"></div>
+                <div style="flex:1;background:var(--primary);border-radius:2px;height:95%"></div>
+                <div style="flex:1;background:var(--emerald);border-radius:2px;height:88%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating cards -->
+      <div class="hero-card-float hero-card-1">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;background:var(--mint);border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <i data-lucide="award" style="width:16px;height:16px;color:var(--primary)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--heading)">Sertifikat Diraih</div>
+            <div style="font-size:11px;color:var(--success)">Digital Literacy ✓</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-card-float hero-card-2">
+        <div style="font-size:11px;font-weight:600;color:var(--body);margin-bottom:4px">Progres Belajar</div>
+        <div style="font-size:20px;font-weight:800;color:var(--primary)">68%</div>
+        <div class="progress-bar" style="margin-top:6px;width:120px">
+          <div class="progress-fill" style="width:68%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURES ══ -->
+<section class="landing-section-full" id="features">
+  <div class="section-inner">
+    <div style="text-align:center">
+      <div class="section-tag">
+        <i data-lucide="layers" style="width:12px;height:12px"></i>
+        Fitur Unggulan
+      </div>
+      <h2 class="section-headline" style="margin:0 auto var(--space-4);text-align:center">Semua yang Anda butuhkan<br>dalam satu platform</h2>
+      <p class="section-description" style="margin:0 auto;text-align:center">Dari manajemen SDM hingga pengembangan kompetensi, TUMBUH menyediakan ekosistem lengkap untuk pertumbuhan individu dan organisasi.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--mint)">
+          <i data-lucide="users" style="width:24px;height:24px;color:var(--primary)"></i>
+        </div>
+        <div class="feature-title">Manajemen SDM</div>
+        <p class="feature-desc">Kelola data pegawai, pendidik, dan peserta dalam satu sistem terpadu dengan filter, pencarian, dan ekspor data yang mudah.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--blue-accent)">
+          <i data-lucide="book-open" style="width:24px;height:24px;color:#1E5FAD"></i>
+        </div>
+        <div class="feature-title">Katalog Program</div>
+        <p class="feature-desc">Jelajahi ratusan program pendidikan dan pelatihan dari berbagai kategori. Daftar, ikuti, dan raih sertifikat dengan mudah.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--lavender)">
+          <i data-lucide="star" style="width:24px;height:24px;color:#5B3FBF"></i>
+        </div>
+        <div class="feature-title">Peta Kompetensi</div>
+        <p class="feature-desc">Visualisasikan kompetensi individu dan organisasi, lacak perkembangan, dan dapatkan rekomendasi pengembangan yang tepat.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--yellow)">
+          <i data-lucide="calendar" style="width:24px;height:24px;color:#8A6210"></i>
+        </div>
+        <div class="feature-title">Kalender Terintegrasi</div>
+        <p class="feature-desc">Pantau jadwal pelatihan, rapat, evaluasi, dan tenggat tugas dalam kalender interaktif yang terhubung langsung dengan program.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--mint)">
+          <i data-lucide="bar-chart-2" style="width:24px;height:24px;color:var(--primary)"></i>
+        </div>
+        <div class="feature-title">Laporan & Analitik</div>
+        <p class="feature-desc">Dapatkan insight mendalam melalui dashboard analitik, grafik tren, dan laporan yang dapat diekspor dalam berbagai format.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#FFE8E8">
+          <i data-lucide="award" style="width:24px;height:24px;color:var(--danger)"></i>
+        </div>
+        <div class="feature-title">Sertifikasi Digital</div>
+        <p class="feature-desc">Terima sertifikat digital resmi setelah menyelesaikan program. Unduh, bagikan, dan simpan sebagai bukti pencapaian Anda.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section class="landing-section" id="how" style="text-align:center">
+  <div class="section-tag">
+    <i data-lucide="git-branch" style="width:12px;height:12px"></i>
+    Alur Penggunaan
+  </div>
+  <h2 class="section-headline" style="margin:0 auto var(--space-3);text-align:center">Cara kerja TUMBUH,<br>simpel dan efektif</h2>
+  <p class="section-description" style="margin:0 auto;text-align:center">Mulai perjalanan pengembangan Anda dalam 4 langkah mudah.</p>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-number">1</div>
+      <div class="step-title">Buat Akun</div>
+      <p class="step-desc">Daftar sebagai pegawai, pendidik, pimpinan, atau peserta belajar. Pilih peran yang sesuai.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-number">2</div>
+      <div class="step-title">Jelajahi Program</div>
+      <p class="step-desc">Temukan program pelatihan yang relevan dengan kebutuhan dan tujuan pengembangan Anda.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-number">3</div>
+      <div class="step-title">Ikuti & Berkembang</div>
+      <p class="step-desc">Akses materi, kerjakan tugas, lacak progres, dan tandai penyelesaian setiap modul.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-number">4</div>
+      <div class="step-title">Raih Sertifikat</div>
+      <p class="step-desc">Dapatkan sertifikat digital setelah menyelesaikan program sebagai bukti pencapaian Anda.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PROGRAMS ══ -->
+<section class="landing-section-full" id="programs">
+  <div class="section-inner">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:var(--space-8)">
+      <div>
+        <div class="section-tag">
+          <i data-lucide="book-open" style="width:12px;height:12px"></i>
+          Program Pilihan
+        </div>
+        <h2 class="section-headline" style="margin:0">Program unggulan untuk<br>perkembangan nyata</h2>
+      </div>
+      <a href="login.html" class="btn btn-secondary">Lihat Semua Program <i data-lucide="arrow-right" style="width:16px;height:16px"></i></a>
+    </div>
+
+    <div class="programs-grid" id="landing-programs">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ══ BENEFITS ══ -->
+<section class="landing-section" id="benefits">
+  <div style="text-align:center;margin-bottom:var(--space-10)">
+    <div class="section-tag">
+      <i data-lucide="heart" style="width:12px;height:12px"></i>
+      Manfaat TUMBUH
+    </div>
+    <h2 class="section-headline" style="margin:0 auto;text-align:center">Dirancang untuk semua<br>pemangku kepentingan</h2>
+  </div>
+  <div class="benefits-grid">
+    <div class="benefit-card">
+      <div class="benefit-avatar" style="background:var(--mint)">
+        <i data-lucide="user" style="width:24px;height:24px;color:var(--primary)"></i>
+      </div>
+      <h3 style="font-size:var(--text-base);margin-bottom:var(--space-2)">Individu & Pegawai</h3>
+      <ul style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Lacak progres belajar personal</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Dapatkan rekomendasi program</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Sertifikat digital yang diakui</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Kelola riwayat karier</li>
+      </ul>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-avatar" style="background:var(--blue-accent)">
+        <i data-lucide="building-2" style="width:24px;height:24px;color:#1E5FAD"></i>
+      </div>
+      <h3 style="font-size:var(--text-base);margin-bottom:var(--space-2)">Institusi & Organisasi</h3>
+      <ul style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Manajemen SDM terpusat</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Kelola program & kurikulum</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Analitik partisipasi real-time</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Laporan yang dapat diekspor</li>
+      </ul>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-avatar" style="background:var(--lavender)">
+        <i data-lucide="briefcase" style="width:24px;height:24px;color:#5B3FBF"></i>
+      </div>
+      <h3 style="font-size:var(--text-base);margin-bottom:var(--space-2)">Pimpinan & Manajer</h3>
+      <ul style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Dashboard ringkasan strategis</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Monitor kompetensi tim</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Identifikasi kebutuhan pelatihan</li>
+        <li style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--body)"><i data-lucide="check-circle" style="width:14px;height:14px;color:var(--success);flex-shrink:0"></i> Rekomendasi pengembangan SDM</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TESTIMONIALS ══ -->
+<section class="landing-section-full testimonial-section" id="about">
+  <div class="section-inner">
+    <div style="text-align:center;margin-bottom:var(--space-10)">
+      <div class="section-tag">
+        <i data-lucide="message-circle" style="width:12px;height:12px"></i>
+        Cerita Pengguna
+      </div>
+      <h2 class="section-headline" style="margin:0 auto;text-align:center">Apa kata mereka<br>tentang TUMBUH?</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"TUMBUH mengubah cara kami mengelola pelatihan. Semua data SDM, program, dan kompetensi tersedia dalam satu tempat yang mudah diakses."</p>
+        <div class="testimonial-author">
+          <div class="avatar avatar-sm" style="background:#DDF4E9;color:#086B50;font-weight:700">BP</div>
+          <div>
+            <div class="testimonial-name">Budi Prasetyo</div>
+            <div class="testimonial-role">Kepala Divisi SDM, PT Maju Bersama</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"Sebagai instruktur, saya sangat terbantu dengan fitur manajemen materi dan pelacakan progres peserta. Sangat memudahkan proses evaluasi."</p>
+        <div class="testimonial-author">
+          <div class="avatar avatar-sm" style="background:#EAE3FA;color:#5B3FBF;font-weight:700">SR</div>
+          <div>
+            <div class="testimonial-name">Siti Rahayu</div>
+            <div class="testimonial-role">Instruktur Senior, Lembaga Pendidikan ABC</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★☆</div>
+        <p class="testimonial-text">"Saya bisa melacak perkembangan kompetensi saya dan mendapatkan rekomendasi program yang tepat. Sertifikat digital-nya juga sangat berguna untuk portfolio."</p>
+        <div class="testimonial-author">
+          <div class="avatar avatar-sm" style="background:#DCEBFC;color:#1E5FAD;font-weight:700">AN</div>
+          <div>
+            <div class="testimonial-name">Andi Nugroho</div>
+            <div class="testimonial-role">Peserta Program Data Analytics</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA BANNER ══ -->
+<section class="landing-section">
+  <div class="cta-banner">
+    <h2 style="font-size:clamp(1.5rem,3vw,2rem)">Mulai perjalanan pengembangan Anda hari ini</h2>
+    <p>Bergabunglah dengan ribuan individu dan organisasi yang sudah menggunakan TUMBUH untuk tumbuh dan berkembang.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="login.html" class="btn btn-lg" style="background:white;color:var(--primary)">
+        <i data-lucide="user-plus" style="width:18px;height:18px"></i>
+        Daftar Gratis Sekarang
+      </a>
+      <a href="login.html" class="btn btn-lg" style="background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.3)">
+        <i data-lucide="log-in" style="width:18px;height:18px"></i>
+        Masuk ke Akun
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.1)"/>
+            <path d="M8 28V14C8 13.4 8.4 13 9 13H19C19.6 13 20 13.4 20 14V28H8Z" fill="white" opacity="0.8"/>
+            <path d="M20 28V14C20 13.4 20.4 13 21 13H31C31.6 13 32 13.4 32 14V28H20Z" fill="rgba(255,255,255,0.5)"/>
+            <path d="M7 28H33" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 13V7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <div style="font-size:var(--text-lg);font-weight:800;color:white">TUMBUH</div>
+          </div>
+        </div>
+        <p class="footer-brand-desc">Platform digital terpadu untuk mengelola sumber daya manusia dan mendukung proses pendidikan serta pengembangan kompetensi.</p>
+        <p class="footer-brand-desc" style="margin-top:8px;font-style:italic">"Setiap individu punya potensi. TUMBUH membantu mengembangkannya."</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Platform</div>
+        <a class="footer-link" href="#">Fitur</a>
+        <a class="footer-link" href="#">Program</a>
+        <a class="footer-link" href="#">Sertifikasi</a>
+        <a class="footer-link" href="#">Harga</a>
+      </div>
+      <div>
+        <div class="footer-col-title">Peran Pengguna</div>
+        <a class="footer-link" href="login.html">Admin / Operator</a>
+        <a class="footer-link" href="login.html">Pegawai / Pendidik</a>
+        <a class="footer-link" href="login.html">Pimpinan / Manajer</a>
+        <a class="footer-link" href="login.html">Peserta Belajar</a>
+      </div>
+      <div>
+        <div class="footer-col-title">Dukungan</div>
+        <a class="footer-link" href="#">Panduan Pengguna</a>
+        <a class="footer-link" href="#">FAQ</a>
+        <a class="footer-link" href="#">Hubungi Kami</a>
+        <a class="footer-link" href="#">Kebijakan Privasi</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2024 TUMBUH Learning & Talent Ecosystem. All rights reserved.</span>
+      <span>Dibuat dengan ♥ untuk Indonesia</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script>
+// Navbar scroll
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Mobile menu
+function toggleMobileMenu() {
+  document.getElementById('mobile-menu').classList.toggle('open');
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+
+// Scroll to section
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Render landing programs
+function renderLandingPrograms() {
+  const programs = DB.getPrograms({ status: 'Aktif' }).slice(0, 6);
+  const container = document.getElementById('landing-programs');
+  if (!container) return;
+  const catColors = {
+    'Data Analytics': '#DCEBFC',
+    'Leadership Development': '#EAE3FA',
+    'Digital Literacy': '#DDF4E9',
+    'Professional Skills': '#FFF0C9',
+    'Sertifikasi': '#FFE8E8',
+    'Pengembangan Kompetensi': '#DDF4E9',
+  };
+  container.innerHTML = programs.map(p => `
+    <div class="program-card" onclick="window.location.href='login.html'">
+      <div class="program-cover" style="background:${catColors[p.category]||'#DDF4E9'}">
+        <span style="font-size:3rem">${p.cover_icon}</span>
+      </div>
+      <div class="program-card-body">
+        <div class="program-category">${categoryBadge(p.category)}</div>
+        <div class="program-title">${p.title}</div>
+        <p style="font-size:var(--text-xs);color:var(--body);line-height:1.5;-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden">${p.description}</p>
+        <div class="program-meta">
+          <div class="program-meta-item">
+            <i data-lucide="clock" style="width:12px;height:12px"></i>
+            ${p.duration}
+          </div>
+          <div class="program-meta-item">
+            <i data-lucide="users" style="width:12px;height:12px"></i>
+            ${p.enrolled}/${p.quota} peserta
+          </div>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span class="badge badge-green">${p.status}</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location.href='login.html'">Daftar</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// Helpers inline
+function categoryBadge(cat) {
+  const map = {
+    'Data Analytics': 'badge-blue', 'Leadership Development': 'badge-lavender',
+    'Digital Literacy': 'badge-green', 'Professional Skills': 'badge-yellow',
+    'Sertifikasi': 'badge-red', 'Pengembangan Kompetensi': 'badge-green',
+  };
+  return `<span class="badge ${map[cat]||'badge-gray'}">${cat}</span>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderLandingPrograms();
+  if (window.lucide) window.lucide.createIcons();
+});
+</script>
+</body>
+</html>

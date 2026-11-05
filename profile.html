@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil Saya — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let currentUser = Auth.require();
+if (!currentUser) throw new Error('Not authenticated');
+</script>
+
+<div id="shell-root"></div>
+
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('profile', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let profState = {
+  activeTab: 'programs', // 'programs', 'certificates', 'competencies', 'edit-profile', 'security'
+};
+
+function initProfile() {
+  renderProfilePage();
+}
+
+function renderProfilePage() {
+  const userDetails = DB.getUserWithDetails(currentUser.id) || currentUser;
+  const userUnit = userDetails.unit ? userDetails.unit.name : 'Divisi Organisasi';
+  const myPrograms = userDetails.programs || [];
+  const myCerts = userDetails.certificates || [];
+  const myComps = userDetails.competencies || [];
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{ label: 'TUMBUH', url: 'dashboard.html' }, { label: 'Profil Saya' }])}
+
+    <!-- Profile Header Banner -->
+    <div class="profile-header">
+      <div class="profile-header-inner">
+        <div class="profile-avatar-wrap">
+          ${avatarHTML(userDetails, 'lg')}
+        </div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <h1 class="profile-name">${userDetails.full_name}</h1>
+            ${roleBadge(userDetails.role)}
+            <span class="badge badge-green">${userDetails.employment_status || 'Aktif'}</span>
+          </div>
+          <p class="profile-role">${userDetails.position || 'Staff'} • ${userUnit}</p>
+          <div class="profile-meta">
+            <div class="profile-meta-item">
+              <i data-lucide="mail" style="width:14px;height:14px"></i> ${userDetails.email}
+            </div>
+            <div class="profile-meta-item">
+              <i data-lucide="phone" style="width:14px;height:14px"></i> ${userDetails.phone || '-'}
+            </div>
+            <div class="profile-meta-item">
+              <i data-lucide="calendar" style="width:14px;height:14px"></i> Bergabung sejak ${formatDate(userDetails.joined_at)}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start">
+          <button class="btn btn-outline text-danger btn-sm" onclick="Auth.logout()" title="Keluar dari akun">
+            <i data-lucide="log-out" style="width:14px;height:14px"></i> Keluar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-list" style="margin-bottom: var(--space-5);">
+      <button class="tab-btn ${profState.activeTab === 'programs' ? 'active' : ''}" onclick="switchTab('programs')">
+        <i data-lucide="book-open" style="width:14px;height:14px"></i> Program Belajar (${myPrograms.length})
+      </button>
+      <button class="tab-btn ${profState.activeTab === 'certificates' ? 'active' : ''}" onclick="switchTab('certificates')">
+        <i data-lucide="award" style="width:14px;height:14px"></i> Sertifikat (${myCerts.length})
+      </button>
+      <button class="tab-btn ${profState.activeTab === 'competencies' ? 'active' : ''}" onclick="switchTab('competencies')">
+        <i data-lucide="star" style="width:14px;height:14px"></i> Kompetensi (${myComps.length})
+      </button>
+      <button class="tab-btn ${profState.activeTab === 'edit-profile' ? 'active' : ''}" onclick="switchTab('edit-profile')">
+        <i data-lucide="user-cog" style="width:14px;height:14px"></i> Edit Data Diri
+      </button>
+      <button class="tab-btn ${profState.activeTab === 'security' ? 'active' : ''}" onclick="switchTab('security')">
+        <i data-lucide="shield" style="width:14px;height:14px"></i> Keamanan Akun
+      </button>
+    </div>
+
+    <!-- Tab Contents -->
+    <div id="profile-tab-content">
+      ${renderTabContent(userDetails, myPrograms, myCerts, myComps)}
+    </div>
+
+    <!-- Modals -->
+    <div id="cert-preview-container"></div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function switchTab(tab) {
+  profState.activeTab = tab;
+  renderProfilePage();
+}
+
+function renderTabContent(user, programs, certs, comps) {
+  switch (profState.activeTab) {
+    case 'programs':
+      return `
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+            <div>
+              <h3 class="text-base font-bold" style="color:var(--heading)">Riwayat Partisipasi Program</h3>
+              <p class="text-xs text-muted">Seluruh kurikulum yang sedang maupun telah Anda selesaikan</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="navigate('programs.html')">
+              <i data-lucide="compass" style="width:14px;height:14px"></i> Tambah Program
+            </button>
+          </div>
+
+          ${programs.length === 0 ? `
+            <div class="empty-state">
+              <p>Anda belum terdaftar pada program pelatihan apa pun.</p>
+              <button class="btn btn-primary btn-sm" onclick="navigate('programs.html')">Jelajahi Program Sekarang</button>
+            </div>
+          ` : `
+            <div style="display:flex;flex-direction:column;gap:12px">
+              ${programs.map(item => {
+                const prog = item.program || {};
+                return `
+                  <div class="card" style="padding:16px;background:var(--ivory);border:1px solid var(--border);display:flex;align-items:center;gap:16px">
+                    <div style="font-size:2rem;width:48px;height:48px;background:${prog.cover_color || '#DDF4E9'};border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center">
+                      ${prog.cover_icon || '📚'}
+                    </div>
+                    <div style="flex:1">
+                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                        ${categoryBadge(prog.category || 'Pelatihan')}
+                        ${statusBadge(item.status)}
+                      </div>
+                      <h4 style="font-size:var(--text-base);font-weight:700;color:var(--heading);margin-bottom:4px">${prog.title}</h4>
+                      <p style="font-size:12px;color:var(--body);margin-bottom:8px">Terdaftar sejak: ${formatDate(item.enrollment_date)}</p>
+                      <div style="max-width:320px">
+                        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+                          <span>Progres:</span>
+                          <strong>${item.progress}%</strong>
+                        </div>
+                        ${progressBarHTML(item.progress)}
+                      </div>
+                    </div>
+                    <div>
+                      <button class="btn btn-primary btn-sm" onclick="navigate('programs.html')">
+                        ${item.progress === 100 ? 'Review Materi' : 'Lanjutkan Belajar'}
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+
+    case 'certificates':
+      return `
+        <div class="card">
+          <div style="margin-bottom:var(--space-4)">
+            <h3 class="text-base font-bold" style="color:var(--heading)">Sertifikat Kompetensi Resmi</h3>
+            <p class="text-xs text-muted">Sertifikasi digital kelulusan yang diakui dan siap diunduh</p>
+          </div>
+
+          ${certs.length === 0 ? `
+            <div class="empty-state">
+              <p>Belum ada sertifikat yang diperoleh. Selesaikan program pelatihan dengan nilai progres 100% untuk meraih sertifikat.</p>
+            </div>
+          ` : `
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+              ${certs.map(c => {
+                const prog = DB.getById('programs', c.program_id) || {};
+                return `
+                  <div class="card" style="border:1.5px solid var(--border);padding:20px;background:var(--surface)">
+                    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+                      <div style="width:40px;height:40px;background:var(--mint);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0">
+                        <i data-lucide="award" style="width:22px;height:22px"></i>
+                      </div>
+                      <div>
+                        <h4 style="font-size:var(--text-sm);font-weight:700;color:var(--heading);margin-bottom:2px">${prog.title || 'Program Pelatihan'}</h4>
+                        <div style="font-size:11px;color:var(--muted)">No: <strong>${c.certificate_number}</strong></div>
+                      </div>
+                    </div>
+                    <div style="font-size:12px;color:var(--body);margin-bottom:16px">
+                      Diterbitkan pada: <strong>${formatDate(c.issued_at)}</strong>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                      <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center" onclick="previewCertificate('${c.id}')">
+                        <i data-lucide="eye" style="width:14px;height:14px"></i> Pratinjau
+                      </button>
+                      <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="downloadCertificate('${c.id}')">
+                        <i data-lucide="download" style="width:14px;height:14px"></i> Unduh
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+
+    case 'competencies':
+      return `
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4)">
+            <div>
+              <h3 class="text-base font-bold" style="color:var(--heading)">Matriks Kecakapan Pribadi</h3>
+              <p class="text-xs text-muted">Hasil penilaian berkala oleh atasan / instruktur</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="navigate('competencies.html')">
+              <i data-lucide="radar" style="width:14px;height:14px"></i> Lihat Grafik Radar
+            </button>
+          </div>
+
+          ${comps.length === 0 ? `
+            <div class="empty-state">Belum ada evaluasi kompetensi yang dicatat.</div>
+          ` : `
+            <div style="display:flex;flex-direction:column;gap:12px">
+              ${comps.map(a => {
+                const c = a.competency || {};
+                const pct = (a.score / 5) * 100;
+                return `
+                  <div class="card" style="padding:14px;background:var(--ivory);border:1px solid var(--border)">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                      <div>
+                        <strong>${c.name}</strong>
+                        <span class="badge badge-gray" style="margin-left:6px;font-size:10px">${c.category}</span>
+                      </div>
+                      <div style="font-size:12px">
+                        <strong>Skor: ${a.score} / 5</strong> (Target: ${a.target_score})
+                      </div>
+                    </div>
+                    <div class="competency-bar-track" style="margin-bottom:8px">
+                      <div class="competency-bar-fill" style="width:${pct}%"></div>
+                    </div>
+                    <p style="font-size:12px;color:var(--body)"><em>"${a.notes || 'Performa baik'}"</em></p>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+
+    case 'edit-profile':
+      return `
+        <div class="card" style="max-width:640px">
+          <h3 class="text-base font-bold" style="color:var(--heading);margin-bottom:var(--space-2)">Perbarui Data Akun</h3>
+          <p class="text-xs text-muted" style="margin-bottom:var(--space-4)">Pastikan data kontak dan identitas Anda akurat untuk keperluan administrasi</p>
+
+          <form onsubmit="handleUpdateProfile(event)">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Nama Lengkap <span class="required">*</span></label>
+              <input type="text" class="form-input" id="prof-name" value="${user.full_name}" required>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">Alamat Email (Akun)</label>
+                <input type="email" class="form-input" value="${user.email}" disabled style="background:var(--ivory);cursor:not-allowed">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nomor Telepon / WhatsApp <span class="required">*</span></label>
+                <input type="tel" class="form-input" id="prof-phone" value="${user.phone || ''}" required placeholder="08xxxxxxxxxx">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:18px">
+              <label class="form-label">Posisi / Jabatan Pekerjaan</label>
+              <input type="text" class="form-input" id="prof-pos" value="${user.position || ''}" placeholder="Contoh: Analis Bisnis Senior">
+            </div>
+
+            <div style="display:flex;gap:10px">
+              <button type="submit" class="btn btn-primary">Simpan Perubahan Data</button>
+              <button type="button" class="btn btn-secondary" onclick="renderProfilePage()">Batalkan</button>
+            </div>
+          </form>
+        </div>
+      `;
+
+    case 'security':
+      return `
+        <div class="card" style="max-width:640px">
+          <h3 class="text-base font-bold" style="color:var(--heading);margin-bottom:var(--space-2)">Ubah Kata Sandi</h3>
+          <p class="text-xs text-muted" style="margin-bottom:var(--space-4)">Gunakan minimal 8 karakter dengan kombinasi huruf dan angka untuk keamanan optimal</p>
+
+          <form onsubmit="handleChangePassword(event)">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Kata Sandi Saat Ini <span class="required">*</span></label>
+              <input type="password" class="form-input" id="pwd-old" required placeholder="Masukkan kata sandi lama">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+              <div class="form-group">
+                <label class="form-label">Kata Sandi Baru <span class="required">*</span></label>
+                <input type="password" class="form-input" id="pwd-new" required minlength="6" placeholder="Minimal 6 karakter">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ulangi Kata Sandi Baru <span class="required">*</span></label>
+                <input type="password" class="form-input" id="pwd-confirm" required minlength="6" placeholder="Ketik ulang kata sandi">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Perbarui Kata Sandi</button>
+          </form>
+
+          <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong style="font-size:var(--text-sm);color:var(--danger)">Keluar dari Akun</strong>
+              <p style="font-size:12px;color:var(--body)">Akhiri sesi kerja Anda pada perangkat ini</p>
+            </div>
+            <button type="button" class="btn btn-danger-outline btn-sm" onclick="Auth.logout()">
+              <i data-lucide="log-out" style="width:14px;height:14px"></i> Keluar
+            </button>
+          </div>
+        </div>
+      `;
+  }
+}
+
+function handleUpdateProfile(e) {
+  e.preventDefault();
+  const newName = document.getElementById('prof-name').value.trim();
+  const newPhone = document.getElementById('prof-phone').value.trim();
+  const newPos = document.getElementById('prof-pos').value.trim();
+
+  const updated = DB.update('users', currentUser.id, {
+    full_name: newName,
+    phone: newPhone,
+    position: newPos,
+  });
+
+  if (updated) {
+    currentUser.full_name = newName;
+    currentUser.phone = newPhone;
+    currentUser.position = newPos;
+    Auth.setUser(currentUser);
+    showToast('Profil Anda berhasil diperbarui!', 'success');
+    document.getElementById('shell-root').innerHTML = buildAppShell('profile', currentUser);
+    renderProfilePage();
+    if (window.lucide) window.lucide.createIcons();
+    setupDropdowns();
+  }
+}
+
+function handleChangePassword(e) {
+  e.preventDefault();
+  const oldPwd = document.getElementById('pwd-old').value;
+  const newPwd = document.getElementById('pwd-new').value;
+  const confirmPwd = document.getElementById('pwd-confirm').value;
+
+  const userInDB = DB.getById('users', currentUser.id);
+  if (userInDB.password !== oldPwd) {
+    showToast('Kata sandi saat ini tidak cocok!', 'error');
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    showToast('Konfirmasi kata sandi baru tidak sama!', 'error');
+    return;
+  }
+
+  DB.update('users', currentUser.id, { password: newPwd });
+  showToast('Kata sandi berhasil diperbarui dengan aman.', 'success');
+  document.getElementById('pwd-old').value = '';
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+}
+
+function previewCertificate(certId) {
+  const cert = DB.getById('certificates', certId);
+  if (!cert) return;
+  const program = DB.getById('programs', cert.program_id);
+  const container = document.getElementById('cert-preview-container');
+
+  container.innerHTML = `
+    <div class="modal-overlay" id="cert-preview-modal">
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <h3 class="text-base font-bold">Dokumen Sertifikat Digital</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('cert-preview-modal')">
+            <i data-lucide="x" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:24px">
+          <div style="border:4px double var(--primary);padding:30px;border-radius:var(--radius-lg);background:#FAF8F5">
+            <div style="font-size:11px;letter-spacing:2px;font-weight:700;color:var(--primary);margin-bottom:8px">TUMBUH ECOSYSTEM CERTIFICATE</div>
+            <h2 style="font-size:1.3rem;font-weight:800;color:var(--heading);margin-bottom:6px">SERTIFIKAT KELULUSAN</h2>
+            <p style="font-size:11px;color:var(--body);margin-bottom:12px">Dianugerahkan kepada:</p>
+            <h3 style="font-size:1.2rem;font-weight:800;color:var(--primary);border-bottom:1.5px solid var(--border);display:inline-block;padding-bottom:4px;margin-bottom:12px">${currentUser.full_name}</h3>
+            <p style="font-size:12px;color:var(--body);line-height:1.5;margin-bottom:14px">Atas kelulusan dan keberhasilan menguasai kompetensi pada program:</p>
+            <h4 style="font-size:1rem;font-weight:700;color:var(--heading);margin-bottom:16px">${program ? program.title : 'Program Pelatihan'}</h4>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--body);border-top:1px solid var(--border);padding-top:12px">
+              <div>Nomor: <strong>${cert.certificate_number}</strong></div>
+              <div>Tanggal Terbit: <strong>${formatDate(cert.issued_at)}</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('cert-preview-modal')">Tutup</button>
+          <button class="btn btn-primary" onclick="downloadCertificate('${cert.id}')">
+            <i data-lucide="download" style="width:14px;height:14px"></i> Unduh Sertifikat (PDF / PNG)
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal('cert-preview-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ── Startup
+document.addEventListener('DOMContentLoaded', () => {
+  initProfile();
+});
+</script>
+</body>
+</html>

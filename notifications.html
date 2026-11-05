@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifikasi — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const currentUser = Auth.require();
+if (!currentUser) throw new Error('Not authenticated');
+</script>
+
+<div id="shell-root"></div>
+
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('notifications', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let notifState = {
+  filter: 'all', // 'all', 'unread', 'program', 'evaluasi', 'pengingat', 'sistem'
+};
+
+function initNotifications() {
+  renderNotificationsPage();
+}
+
+function renderNotificationsPage() {
+  const allNotifs = DB.getUserNotifications(currentUser.id);
+  const unreadCount = DB.getUnreadCount(currentUser.id);
+
+  let filtered = allNotifs;
+  if (notifState.filter === 'unread') {
+    filtered = filtered.filter(n => !n.read_at);
+  } else if (notifState.filter !== 'all') {
+    filtered = filtered.filter(n => n.category === notifState.filter);
+  }
+
+  const categoryIcons = {
+    sistem: { icon: 'bell', bg: 'var(--mint)', color: 'var(--primary)' },
+    program: { icon: 'book-open', bg: 'var(--blue-accent)', color: '#1E5FAD' },
+    pengingat: { icon: 'clock', bg: '#FFF8E6', color: 'var(--warning)' },
+    evaluasi: { icon: 'star', bg: 'var(--lavender-accent)', color: '#5B3FBF' },
+    sertifikat: { icon: 'award', bg: 'var(--mint)', color: 'var(--primary)' },
+    pengumuman: { icon: 'megaphone', bg: '#FFE8E8', color: 'var(--danger)' },
+    laporan: { icon: 'bar-chart-2', bg: 'var(--blue-accent)', color: '#1E5FAD' },
+  };
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{ label: 'TUMBUH', url: 'dashboard.html' }, { label: 'Notifikasi' }])}
+
+    <div class="page-header">
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">Pusat Notifikasi & Pengingat</h1>
+          <p class="page-subtitle">Informasi jadwal kegiatan, progres modul, evaluasi kompetensi, dan pengumuman sistem.</p>
+        </div>
+        <div class="page-actions">
+          ${unreadCount > 0 ? `
+            <button class="btn btn-secondary btn-sm" onclick="markAllAsRead()">
+              <i data-lucide="check-check" style="width:16px;height:16px"></i> Tandai Semua Dibaca
+            </button>
+          ` : ''}
+          <button class="btn btn-ghost btn-sm text-danger" onclick="clearReadNotifications()">
+            <i data-lucide="trash-2" style="width:14px;height:14px"></i> Bersihkan Riwayat
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Filter Tabs -->
+    <div class="tab-list" style="margin-bottom:var(--space-4)">
+      <button class="tab-btn ${notifState.filter === 'all' ? 'active' : ''}" onclick="setFilter('all')">
+        Semua (${allNotifs.length})
+      </button>
+      <button class="tab-btn ${notifState.filter === 'unread' ? 'active' : ''}" onclick="setFilter('unread')">
+        Belum Dibaca ${unreadCount > 0 ? `<span class="badge badge-green" style="margin-left:4px;padding:2px 6px">${unreadCount}</span>` : ''}
+      </button>
+      <button class="tab-btn ${notifState.filter === 'program' ? 'active' : ''}" onclick="setFilter('program')">Program Pelatihan</button>
+      <button class="tab-btn ${notifState.filter === 'pengingat' ? 'active' : ''}" onclick="setFilter('pengingat')">Pengingat Jadwal</button>
+      <button class="tab-btn ${notifState.filter === 'evaluasi' ? 'active' : ''}" onclick="setFilter('evaluasi')">Evaluasi</button>
+    </div>
+
+    <!-- Notifications List Box -->
+    <div class="card" style="padding:0;overflow:hidden">
+      ${filtered.length === 0 ? `
+        <div class="empty-state" style="padding:40px">
+          ${emptyStateHTML('bell-off', 'Tidak ada notifikasi', 'Semua pesan dan pengingat telah dibaca atau belum ada aktivitas baru.')}
+        </div>
+      ` : `
+        <div class="notif-list">
+          ${filtered.map(n => {
+            const isUnread = !n.read_at;
+            const meta = categoryIcons[n.category] || categoryIcons.sistem;
+            return `
+              <div class="notif-item ${isUnread ? 'unread' : ''}" onclick="handleNotifClick('${n.id}')">
+                <div class="notif-icon-wrap" style="background:${meta.bg};color:${meta.color}">
+                  <i data-lucide="${meta.icon}" style="width:18px;height:18px"></i>
+                </div>
+                <div class="notif-content">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                    <div class="notif-title">${n.title}</div>
+                    <span class="notif-time">${timeAgo(n.created_at)}</span>
+                  </div>
+                  <div class="notif-message">${n.message}</div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                    <span class="badge badge-gray" style="text-transform:capitalize;font-size:10px">${n.category}</span>
+                    ${isUnread ? `
+                      <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 6px" onclick="event.stopPropagation();markSingleRead('${n.id}')">
+                        Tandai dibaca
+                      </button>
+                    ` : `
+                      <span style="font-size:11px;color:var(--muted)">✓ Dibaca</span>
+                    `}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function setFilter(f) {
+  notifState.filter = f;
+  renderNotificationsPage();
+}
+
+function markSingleRead(id) {
+  DB.markNotifRead(id);
+  showToast('Notifikasi ditandai telah dibaca.', 'success');
+  // Re-render shell to update topbar and sidebar badge
+  document.getElementById('shell-root').innerHTML = buildAppShell('notifications', currentUser);
+  renderNotificationsPage();
+  if (window.lucide) window.lucide.createIcons();
+  setupDropdowns();
+}
+
+function markAllAsRead() {
+  DB.markAllRead(currentUser.id);
+  showToast('Semua notifikasi telah ditandai dibaca.', 'success');
+  document.getElementById('shell-root').innerHTML = buildAppShell('notifications', currentUser);
+  renderNotificationsPage();
+  if (window.lucide) window.lucide.createIcons();
+  setupDropdowns();
+}
+
+function clearReadNotifications() {
+  confirmDialog('Hapus semua riwayat notifikasi yang sudah dibaca?', () => {
+    DB.data.notifications = DB.data.notifications.filter(n => n.user_id !== currentUser.id || !n.read_at);
+    DB._save();
+    showToast('Riwayat notifikasi terbaca telah dibersihkan.', 'info');
+    renderNotificationsPage();
+  }, { title: 'Bersihkan Notifikasi', danger: false, confirmText: 'Bersihkan' });
+}
+
+function handleNotifClick(notifId) {
+  const notif = DB.getById('notifications', notifId);
+  if (!notif) return;
+  if (!notif.read_at) {
+    DB.markNotifRead(notifId);
+  }
+  if (notif.related_url) {
+    if (notif.related_url.startsWith('/programs')) {
+      navigate('programs.html');
+    } else if (notif.related_url.startsWith('/calendar')) {
+      navigate('calendar.html');
+    } else if (notif.related_url.startsWith('/competencies')) {
+      navigate('competencies.html');
+    } else if (notif.related_url.startsWith('/reports')) {
+      navigate('reports.html');
+    } else if (notif.related_url.startsWith('/sdm')) {
+      navigate('sdm.html');
+    } else {
+      renderNotificationsPage();
+    }
+  } else {
+    renderNotificationsPage();
+  }
+}
+
+// ── Startup
+document.addEventListener('DOMContentLoaded', () => {
+  initNotifications();
+});
+</script>
+</body>
+</html>

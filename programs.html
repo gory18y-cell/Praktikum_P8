@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pendidikan & Pelatihan — TUMBUH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const currentUser = Auth.require();
+if (!currentUser) throw new Error('Not authenticated');
+</script>
+
+<div id="shell-root"></div>
+
+<script>
+document.getElementById('shell-root').innerHTML = buildAppShell('programs', currentUser);
+setTimeout(() => { if (window.lucide) window.lucide.createIcons(); setupDropdowns(); }, 50);
+
+// ── State
+let pState = {
+  tab: 'all', // 'all', 'my', 'completed'
+  viewMode: 'grid', // 'grid' or 'list'
+  search: '',
+  category: '',
+  status: '',
+  selectedProgramId: null,
+};
+
+function initPrograms() {
+  renderProgramsPage();
+}
+
+function renderProgramsPage() {
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+  const allPrograms = DB.getPrograms();
+  const myEnrollments = DB.data.enrollments.filter(e => e.user_id === currentUser.id);
+  const myProgramIds = new Set(myEnrollments.map(e => e.program_id));
+
+  // Filter based on tab
+  let list = allPrograms;
+  if (pState.tab === 'my') {
+    list = list.filter(p => myProgramIds.has(p.id));
+  } else if (pState.tab === 'completed') {
+    const completedIds = new Set(myEnrollments.filter(e => e.status === 'Selesai' || e.progress === 100).map(e => e.program_id));
+    list = list.filter(p => completedIds.has(p.id) || (isAdmin && p.status === 'Selesai'));
+  }
+
+  // Search filter
+  if (pState.search) {
+    const q = pState.search.toLowerCase();
+    list = list.filter(p => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+  }
+  // Category filter
+  if (pState.category) {
+    list = list.filter(p => p.category === pState.category);
+  }
+  // Status filter
+  if (pState.status) {
+    list = list.filter(p => p.status === pState.status);
+  }
+
+  const categories = [
+    'Data Analytics',
+    'Leadership Development',
+    'Digital Literacy',
+    'Professional Skills',
+    'Sertifikasi',
+    'Pengembangan Kompetensi'
+  ];
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    ${breadcrumbHTML([{ label: 'TUMBUH', url: 'dashboard.html' }, { label: 'Pendidikan & Pelatihan' }])}
+
+    <div class="page-header">
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">Pendidikan & Pelatihan</h1>
+          <p class="page-subtitle">Akselerasi kapasitas diri dan organisasi melalui kurikulum komprehensif.</p>
+        </div>
+        <div class="page-actions">
+          ${isAdmin ? `
+            <button class="btn btn-primary btn-sm" onclick="openProgramModal()">
+              <i data-lucide="plus" style="width:16px;height:16px"></i> Tambah Program
+            </button>
+          ` : `
+            <button class="btn btn-secondary btn-sm" onclick="setTab('my')">
+              <i data-lucide="bookmark" style="width:16px;height:16px"></i> Program Terdaftar (${myEnrollments.length})
+            </button>
+          `}
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-list" style="margin-bottom: var(--space-4);">
+      <button class="tab-btn ${pState.tab === 'all' ? 'active' : ''}" onclick="setTab('all')">Semua Program (${allPrograms.length})</button>
+      <button class="tab-btn ${pState.tab === 'my' ? 'active' : ''}" onclick="setTab('my')">Program Saya (${myEnrollments.length})</button>
+      <button class="tab-btn ${pState.tab === 'completed' ? 'active' : ''}" onclick="setTab('completed')">Selesai</button>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="filter-bar">
+      <div class="filter-group" style="flex: 1; min-width: 220px;">
+        <div class="search-box" style="width: 100%;">
+          <i data-lucide="search" style="width:16px;height:16px"></i>
+          <input type="text" placeholder="Cari judul program atau materi..." value="${pState.search}" oninput="handleSearch(this.value)">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Kategori:</label>
+        <select class="filter-select" onchange="handleCategory(this.value)">
+          <option value="">Semua Kategori</option>
+          ${categories.map(c => `<option value="${c}" ${pState.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Status:</label>
+        <select class="filter-select" onchange="handleStatus(this.value)">
+          <option value="">Semua Status</option>
+          <option value="Aktif" ${pState.status === 'Aktif' ? 'selected' : ''}>Aktif</option>
+          <option value="Akan Datang" ${pState.status === 'Akan Datang' ? 'selected' : ''}>Akan Datang</option>
+          <option value="Selesai" ${pState.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+        </select>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn ${pState.viewMode === 'grid' ? 'active' : ''}" onclick="setViewMode('grid')" title="Tampilan Grid">
+          <i data-lucide="grid" style="width:16px;height:16px"></i>
+        </button>
+        <button class="view-btn ${pState.viewMode === 'list' ? 'active' : ''}" onclick="setViewMode('list')" title="Tampilan Daftar">
+          <i data-lucide="list" style="width:16px;height:16px"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Programs Grid / List View -->
+    <div id="programs-container">
+      ${list.length === 0 ? emptyStateHTML('book-open', 'Tidak ada program ditemukan', 'Coba gunakan kata kunci pencarian atau filter yang berbeda.', 'Reset Filter', 'resetFilters()') : (pState.viewMode === 'grid' ? renderGrid(list) : renderList(list))}
+    </div>
+
+    <!-- Modals -->
+    <div id="program-modal-container"></div>
+    <div id="detail-modal-container"></div>
+    <div id="cert-modal-container"></div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function setTab(tab) {
+  pState.tab = tab;
+  renderProgramsPage();
+}
+
+function setViewMode(mode) {
+  pState.viewMode = mode;
+  renderProgramsPage();
+}
+
+function handleSearch(val) {
+  pState.search = val;
+  renderProgramsPage();
+}
+
+function handleCategory(val) {
+  pState.category = val;
+  renderProgramsPage();
+}
+
+function handleStatus(val) {
+  pState.status = val;
+  renderProgramsPage();
+}
+
+function resetFilters() {
+  pState.search = '';
+  pState.category = '';
+  pState.status = '';
+  pState.tab = 'all';
+  renderProgramsPage();
+}
+
+// ── Render Program Cards (Grid View)
+function renderGrid(programs) {
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+
+  return `
+    <div class="catalog-grid">
+      ${programs.map(p => {
+        const enrollment = DB.getUserEnrollment(currentUser.id, p.id);
+        const instructor = DB.getById('users', p.instructor_id);
+        const isFull = p.enrolled >= p.quota;
+
+        return `
+          <div class="catalog-card" onclick="openProgramDetail('${p.id}')">
+            <div class="catalog-cover" style="background:${p.cover_color || '#DDF4E9'}">
+              <span style="font-size:3.5rem">${p.cover_icon || '📚'}</span>
+              <div class="cover-overlay"></div>
+              <div style="position:absolute;top:12px;right:12px;display:flex;gap:6px">
+                ${statusBadge(p.status)}
+              </div>
+            </div>
+            <div class="catalog-body">
+              <div class="catalog-category">${categoryBadge(p.category)}</div>
+              <h3 class="catalog-title">${p.title}</h3>
+              <p class="catalog-desc">${p.description}</p>
+              
+              <div class="catalog-meta">
+                <div class="catalog-meta-item">
+                  <i data-lucide="clock" style="width:14px;height:14px"></i>
+                  <span>${p.duration}</span>
+                </div>
+                <div class="catalog-meta-item">
+                  <i data-lucide="users" style="width:14px;height:14px"></i>
+                  <span>${p.enrolled} / ${p.quota} Kuota</span>
+                </div>
+              </div>
+
+              ${enrollment ? `
+                <div class="catalog-progress-wrap">
+                  <div class="catalog-progress-label">
+                    <span>Progress Belajar</span>
+                    <strong>${enrollment.progress}%</strong>
+                  </div>
+                  ${progressBarHTML(enrollment.progress)}
+                </div>
+              ` : ''}
+
+              <div class="catalog-footer">
+                <div style="display:flex;align-items:center;gap:8px">
+                  ${instructor ? avatarHTML(instructor, 'xs') : ''}
+                  <span style="font-size:var(--text-xs);color:var(--heading);font-weight:600">${instructor ? instructor.full_name.split(' ')[0] : 'Instruktur'}</span>
+                </div>
+                <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+                  ${enrollment ? `
+                    <button class="btn btn-primary btn-sm" onclick="openProgramDetail('${p.id}')">
+                      ${enrollment.progress === 100 ? 'Lihat Materi' : 'Lanjutkan'}
+                    </button>
+                  ` : isFull ? `
+                    <button class="btn btn-secondary btn-sm" disabled>Penuh</button>
+                  ` : `
+                    <button class="btn btn-primary btn-sm" onclick="enrollProgram('${p.id}')">Daftar</button>
+                  `}
+                  ${isAdmin ? `
+                    <button class="btn btn-ghost btn-icon btn-sm" onclick="editProgram('${p.id}')" title="Edit">
+                      <i data-lucide="edit-2" style="width:14px;height:14px"></i>
+                    </button>
+                    <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="deleteProgram('${p.id}')" title="Hapus">
+                      <i data-lucide="trash-2" style="width:14px;height:14px;color:var(--danger)"></i>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ── Render Program List (List View)
+function renderList(programs) {
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+
+  return `
+    <div class="catalog-list">
+      ${programs.map(p => {
+        const enrollment = DB.getUserEnrollment(currentUser.id, p.id);
+        const instructor = DB.getById('users', p.instructor_id);
+        const isFull = p.enrolled >= p.quota;
+
+        return `
+          <div class="catalog-list-item" onclick="openProgramDetail('${p.id}')">
+            <div class="catalog-list-cover" style="background:${p.cover_color || '#DDF4E9'}">
+              <span>${p.cover_icon || '📚'}</span>
+            </div>
+            <div class="catalog-list-info">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                ${categoryBadge(p.category)}
+                ${statusBadge(p.status)}
+                ${enrollment ? `<span class="badge badge-green">Terdaftar (${enrollment.progress}%)</span>` : ''}
+              </div>
+              <h3 style="font-size:var(--text-base);font-weight:700;color:var(--heading);margin-bottom:4px">${p.title}</h3>
+              <p style="font-size:var(--text-xs);color:var(--body);line-height:1.5;margin-bottom:8px">${p.description}</p>
+              <div style="display:flex;gap:16px;font-size:var(--text-xs);color:var(--body)">
+                <span><strong>Durasi:</strong> ${p.duration}</span>
+                <span><strong>Instruktur:</strong> ${instructor ? instructor.full_name : '-'}</span>
+                <span><strong>Peserta:</strong> ${p.enrolled}/${p.quota}</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px" onclick="event.stopPropagation()">
+              ${enrollment ? `
+                <button class="btn btn-primary btn-sm" onclick="openProgramDetail('${p.id}')">
+                  ${enrollment.progress === 100 ? 'Sertifikat & Materi' : 'Lanjutkan'}
+                </button>
+              ` : isFull ? `
+                <button class="btn btn-secondary btn-sm" disabled>Penuh</button>
+              ` : `
+                <button class="btn btn-primary btn-sm" onclick="enrollProgram('${p.id}')">Daftar</button>
+              `}
+              ${isAdmin ? `
+                <button class="btn btn-secondary btn-sm" onclick="editProgram('${p.id}')">Edit</button>
+                <button class="btn btn-danger-outline btn-sm" onclick="deleteProgram('${p.id}')">Hapus</button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ── Enrollment Action
+function enrollProgram(programId) {
+  const res = DB.enroll(currentUser.id, programId);
+  if (res.error) {
+    showToast(res.error, 'error');
+  } else {
+    showToast('Selamat! Anda berhasil terdaftar ke dalam program.', 'success');
+    renderProgramsPage();
+  }
+}
+
+// ── Open Program Detail Modal
+function openProgramDetail(programId) {
+  const p = DB.getProgramWithDetails(programId);
+  if (!p) return;
+
+  const enrollment = DB.getUserEnrollment(currentUser.id, programId);
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'manager';
+  const container = document.getElementById('detail-modal-container');
+
+  // Compute completed modules
+  const completedModuleIds = new Set(
+    DB.data.module_progress
+      .filter(mp => mp.user_id === currentUser.id && mp.status === 'selesai')
+      .map(mp => mp.module_id)
+  );
+
+  const cert = DB.data.certificates.find(c => c.user_id === currentUser.id && c.program_id === programId);
+
+  container.innerHTML = `
+    <div class="modal-overlay" id="detail-modal">
+      <div class="modal modal-lg">
+        <div class="modal-header" style="background:${p.cover_color || '#DDF4E9'}">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:2.5rem">${p.cover_icon || '📚'}</span>
+            <div>
+              <div style="display:flex;gap:6px;margin-bottom:4px">
+                ${categoryBadge(p.category)}
+                ${statusBadge(p.status)}
+              </div>
+              <h2 class="text-xl font-bold" style="color:var(--heading)">${p.title}</h2>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('detail-modal')">
+            <i data-lucide="x" style="width:20px;height:20px"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div style="margin-bottom:var(--space-5)">
+            <h4 class="text-sm font-bold" style="color:var(--heading);margin-bottom:6px">Deskripsi Program</h4>
+            <p style="font-size:var(--text-sm);color:var(--body);line-height:1.6">${p.description}</p>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:var(--ivory);padding:14px;border-radius:var(--radius-md);margin-bottom:var(--space-6);border:1px solid var(--border)">
+            <div>
+              <span style="font-size:11px;color:var(--body);display:block">Instruktur</span>
+              <strong style="font-size:var(--text-xs);color:var(--heading)">${p.instructor ? p.instructor.full_name : 'Staff Pengajar'}</strong>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--body);display:block">Durasi</span>
+              <strong style="font-size:var(--text-xs);color:var(--heading)">${p.duration}</strong>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--body);display:block">Jadwal</span>
+              <strong style="font-size:var(--text-xs);color:var(--heading)">${formatDateShort(p.start_date)} - ${formatDateShort(p.end_date)}</strong>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--body);display:block">Kapasitas</span>
+              <strong style="font-size:var(--text-xs);color:var(--heading)">${p.enrolled} / ${p.quota} Peserta</strong>
+            </div>
+          </div>
+
+          <!-- Enrollment & Progress Banner -->
+          ${enrollment ? `
+            <div style="background:var(--mint-light);border:1px solid var(--primary);border-radius:var(--radius-md);padding:14px;margin-bottom:var(--space-6)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:var(--text-sm);font-weight:700;color:var(--primary)">Progres Anda: ${enrollment.progress}%</span>
+                ${cert ? `
+                  <button class="btn btn-primary btn-sm" onclick="viewCertificate('${cert.id}')">
+                    <i data-lucide="award" style="width:14px;height:14px"></i> Lihat Sertifikat
+                  </button>
+                ` : `<span style="font-size:11px;color:var(--body)">Selesaikan seluruh modul untuk membuka sertifikat</span>`}
+              </div>
+              ${progressBarHTML(enrollment.progress)}
+            </div>
+          ` : `
+            <div style="background:var(--blue-accent);border:1px solid #1E5FAD;border-radius:var(--radius-md);padding:14px;margin-bottom:var(--space-6);display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong style="font-size:var(--text-sm);color:#1E5FAD">Belum terdaftar pada program ini</strong>
+                <p style="font-size:12px;color:var(--body);margin-top:2px">Daftarkan diri Anda sekarang untuk mulai mengakses materi dan kurikulum.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="enrollProgram('${p.id}');openProgramDetail('${p.id}')">Daftar Sekarang</button>
+            </div>
+          `}
+
+          <!-- Learning Modules -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+            <h4 class="text-sm font-bold" style="color:var(--heading)">Daftar Modul Pembelajaran (${p.modules.length})</h4>
+            ${isAdmin ? `
+              <button class="btn btn-secondary btn-sm" onclick="openAddModuleModal('${p.id}')">
+                <i data-lucide="plus" style="width:12px;height:12px"></i> Tambah Modul
+              </button>
+            ` : ''}
+          </div>
+
+          <div class="module-list">
+            ${p.modules.length === 0 ? `
+              <div class="empty-state" style="padding:20px">Belum ada modul yang ditambahkan ke program ini.</div>
+            ` : p.modules.map((m, idx) => {
+              const isDone = completedModuleIds.has(m.id);
+              return `
+                <div class="module-item ${isDone ? 'completed' : ''}">
+                  <div class="module-num">${idx + 1}</div>
+                  <div class="module-info">
+                    <div class="module-title">${m.title}</div>
+                    <div class="module-sub">${m.description || ''} • <span style="text-transform:capitalize">${m.content_type}</span></div>
+                  </div>
+                  <div class="module-check">
+                    ${enrollment ? `
+                      <button class="btn ${isDone ? 'btn-secondary' : 'btn-primary'} btn-sm" onclick="toggleModuleCompletion('${m.id}', '${p.id}')">
+                        <i data-lucide="${isDone ? 'check-circle' : 'circle'}" style="width:14px;height:14px"></i>
+                        ${isDone ? 'Selesai' : 'Tandai Selesai'}
+                      </button>
+                    ` : `
+                      <span class="badge badge-gray"><i data-lucide="lock" style="width:12px;height:12px"></i> Terkunci</span>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('detail-modal')">Tutup</button>
+          ${!enrollment && p.enrolled < p.quota ? `
+            <button class="btn btn-primary" onclick="enrollProgram('${p.id}');closeModal('detail-modal')">Daftar Program</button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal('detail-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ── Complete / Toggle Module
+function toggleModuleCompletion(moduleId, programId) {
+  DB.completeModule(currentUser.id, moduleId);
+  showToast('Modul berhasil diperbarui!', 'success');
+  openProgramDetail(programId);
+  renderProgramsPage();
+}
+
+// ── View Certificate Modal
+function viewCertificate(certId) {
+  const cert = DB.getById('certificates', certId);
+  if (!cert) return;
+  const program = DB.getById('programs', cert.program_id);
+  const user = DB.getById('users', cert.user_id);
+  const container = document.getElementById('cert-modal-container');
+
+  container.innerHTML = `
+    <div class="modal-overlay" id="cert-modal">
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <h3 class="text-lg font-bold">Sertifikat Kelulusan</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('cert-modal')">
+            <i data-lucide="x" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:var(--space-6)">
+          <div style="border:4px double var(--primary);padding:30px;border-radius:var(--radius-lg);background:#FAF8F5;position:relative">
+            <div style="font-size:12px;letter-spacing:2px;font-weight:700;color:var(--primary);margin-bottom:12px">TUMBUH ACADEMY CERTIFICATE</div>
+            <h2 style="font-size:1.4rem;font-weight:800;color:var(--heading);margin-bottom:8px">SERTIFIKAT KELULUSAN</h2>
+            <p style="font-size:12px;color:var(--body);margin-bottom:16px">Diberikan secara bangga kepada:</p>
+            <h3 style="font-size:1.3rem;font-weight:800;color:var(--primary);border-bottom:1.5px solid var(--border);display:inline-block;padding-bottom:4px;margin-bottom:16px">${user ? user.full_name : currentUser.full_name}</h3>
+            <p style="font-size:13px;color:var(--body);line-height:1.6;margin-bottom:16px">Telah berhasil menyelesaikan seluruh rangkaian kurikulum program:</p>
+            <h4 style="font-size:1rem;font-weight:700;color:var(--heading);margin-bottom:20px">${program ? program.title : 'Program Pelatihan'}</h4>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:24px;border-top:1px solid var(--border);padding-top:16px;font-size:11px;color:var(--body)">
+              <div>No: <strong>${cert.certificate_number}</strong></div>
+              <div>Tanggal Terbit: <strong>${formatDate(cert.issued_at)}</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('cert-modal')">Tutup</button>
+          <button class="btn btn-primary" onclick="downloadCertificate('${cert.id}')">
+            <i data-lucide="download" style="width:14px;height:14px"></i> Unduh Sertifikat (PDF / PNG)
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal('cert-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ── Admin: Create & Edit Program Modal
+function openProgramModal(programId = null) {
+  const p = programId ? DB.getById('programs', programId) : null;
+  const instructors = DB.getUsers().filter(u => u.role === 'employee' || u.role === 'manager' || u.role === 'admin');
+  const container = document.getElementById('program-modal-container');
+
+  const categories = [
+    'Data Analytics',
+    'Leadership Development',
+    'Digital Literacy',
+    'Professional Skills',
+    'Sertifikasi',
+    'Pengembangan Kompetensi'
+  ];
+
+  container.innerHTML = `
+    <div class="modal-overlay" id="program-modal">
+      <div class="modal modal-md">
+        <div class="modal-header">
+          <h3 class="text-lg font-bold">${p ? 'Edit Program Pelatihan' : 'Tambah Program Pelatihan Baru'}</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('program-modal')">
+            <i data-lucide="x" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+        <form onsubmit="handleSaveProgram(event, '${programId || ''}')">
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Judul Program <span class="required">*</span></label>
+              <input type="text" class="form-input" id="prog-title" value="${p ? p.title : ''}" required placeholder="Contoh: Digital Marketing Strategy">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">Kategori <span class="required">*</span></label>
+                <select class="form-input" id="prog-category" required>
+                  ${categories.map(c => `<option value="${c}" ${p && p.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Instruktur <span class="required">*</span></label>
+                <select class="form-input" id="prog-instructor" required>
+                  ${instructors.map(ins => `<option value="${ins.id}" ${p && p.instructor_id === ins.id ? 'selected' : ''}>${ins.full_name}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Deskripsi Lengkap <span class="required">*</span></label>
+              <textarea class="form-input" id="prog-desc" rows="3" required placeholder="Jelaskan tujuan dan kompetensi yang dipelajari...">${p ? p.description : ''}</textarea>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">Kuota Peserta <span class="required">*</span></label>
+                <input type="number" class="form-input" id="prog-quota" value="${p ? p.quota : 30}" min="1" max="500" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Durasi (cth: 8 Minggu) <span class="required">*</span></label>
+                <input type="text" class="form-input" id="prog-duration" value="${p ? p.duration : '8 Minggu'}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status Program</label>
+                <select class="form-input" id="prog-status">
+                  <option value="Aktif" ${p && p.status === 'Aktif' ? 'selected' : ''}>Aktif</option>
+                  <option value="Akan Datang" ${p && p.status === 'Akan Datang' ? 'selected' : ''}>Akan Datang</option>
+                  <option value="Selesai" ${p && p.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div class="form-group">
+                <label class="form-label">Tanggal Mulai <span class="required">*</span></label>
+                <input type="date" class="form-input" id="prog-start" value="${p ? p.start_date : '2024-11-01'}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tanggal Selesai <span class="required">*</span></label>
+                <input type="date" class="form-input" id="prog-end" value="${p ? p.end_date : '2024-12-31'}" required>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group">
+                <label class="form-label">Ikon Emoji</label>
+                <input type="text" class="form-input" id="prog-icon" value="${p ? p.cover_icon : '🚀'}" placeholder="Emoji cth: 📊, 🚀">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Warna Cover</label>
+                <select class="form-input" id="prog-color">
+                  <option value="#DDF4E9" ${p && p.cover_color === '#DDF4E9' ? 'selected' : ''}>Hijau Mint</option>
+                  <option value="#DCEBFC" ${p && p.cover_color === '#DCEBFC' ? 'selected' : ''}>Biru Pastel</option>
+                  <option value="#EAE3FA" ${p && p.cover_color === '#EAE3FA' ? 'selected' : ''}>Lavender</option>
+                  <option value="#FFF0C9" ${p && p.cover_color === '#FFF0C9' ? 'selected' : ''}>Kuning Hangat</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('program-modal')">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Program</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  openModal('program-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function editProgram(id) {
+  openProgramModal(id);
+}
+
+function handleSaveProgram(e, programId) {
+  e.preventDefault();
+  const data = {
+    title: document.getElementById('prog-title').value.trim(),
+    category: document.getElementById('prog-category').value,
+    instructor_id: document.getElementById('prog-instructor').value,
+    description: document.getElementById('prog-desc').value.trim(),
+    quota: parseInt(document.getElementById('prog-quota').value, 10),
+    duration: document.getElementById('prog-duration').value.trim(),
+    status: document.getElementById('prog-status').value,
+    start_date: document.getElementById('prog-start').value,
+    end_date: document.getElementById('prog-end').value,
+    cover_icon: document.getElementById('prog-icon').value.trim() || '📚',
+    cover_color: document.getElementById('prog-color').value,
+  };
+
+  if (programId) {
+    DB.update('programs', programId, data);
+    showToast('Program berhasil diperbarui!', 'success');
+  } else {
+    data.id = DB.generateId('p');
+    data.slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    data.enrolled = 0;
+    data.created_at = new Date().toISOString();
+    DB.insert('programs', data);
+    showToast('Program baru berhasil ditambahkan!', 'success');
+  }
+
+  closeModal('program-modal');
+  renderProgramsPage();
+}
+
+function deleteProgram(programId) {
+  confirmDialog('Apakah Anda yakin ingin menghapus program ini? Tindakan ini tidak dapat dibatalkan.', () => {
+    DB.delete('programs', programId);
+    showToast('Program berhasil dihapus.', 'info');
+    renderProgramsPage();
+  }, { title: 'Hapus Program', danger: true, confirmText: 'Hapus' });
+}
+
+// ── Admin: Add Module Modal
+function openAddModuleModal(programId) {
+  const container = document.getElementById('program-modal-container');
+  container.innerHTML = `
+    <div class="modal-overlay" id="module-modal">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h3 class="text-base font-bold">Tambah Modul Pembelajaran</h3>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal('module-modal')">
+            <i data-lucide="x" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+        <form onsubmit="handleSaveModule(event, '${programId}')">
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom:12px">
+              <label class="form-label">Judul Modul <span class="required">*</span></label>
+              <input type="text" class="form-input" id="mod-title" required placeholder="Contoh: Pengenalan Alat Analisis">
+            </div>
+            <div class="form-group" style="margin-bottom:12px">
+              <label class="form-label">Tipe Konten <span class="required">*</span></label>
+              <select class="form-input" id="mod-type">
+                <option value="text">Artikel / Bacaan (Text)</option>
+                <option value="video">Video Interaktif (Video)</option>
+                <option value="assignment">Tugas / Proyek (Assignment)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deskripsi Singkat</label>
+              <textarea class="form-input" id="mod-desc" rows="2" placeholder="Uraian ringkas tujuan modul..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('module-modal')">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Modul</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  openModal('module-modal');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function handleSaveModule(e, programId) {
+  e.preventDefault();
+  const existingModules = DB.data.learning_modules.filter(m => m.program_id === programId);
+  const newMod = {
+    id: DB.generateId('m'),
+    program_id: programId,
+    title: document.getElementById('mod-title').value.trim(),
+    content_type: document.getElementById('mod-type').value,
+    description: document.getElementById('mod-desc').value.trim(),
+    sort_order: existingModules.length + 1,
+  };
+  DB.insert('learning_modules', newMod);
+  showToast('Modul pembelajaran berhasil ditambahkan!', 'success');
+  closeModal('module-modal');
+  openProgramDetail(programId);
+}
+
+// ── Startup
+document.addEventListener('DOMContentLoaded', () => {
+  initPrograms();
+});
+</script>
+</body>
+</html>

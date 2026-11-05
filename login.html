@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk — TUMBUH</title>
+  <meta name="description" content="Masuk ke platform TUMBUH untuk mengakses program pelatihan dan pengembangan kompetensi.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+<div class="auth-page" id="auth-page">
+  <!-- Visual Panel -->
+  <div class="auth-visual">
+    <div class="auth-visual-content">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:32px">
+        <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.15)"/>
+          <path d="M8 28V14C8 13.4 8.4 13 9 13H19C19.6 13 20 13.4 20 14V28H8Z" fill="white" opacity="0.9"/>
+          <path d="M20 28V14C20 13.4 20.4 13 21 13H31C31.6 13 32 13.4 32 14V28H20Z" fill="rgba(255,255,255,0.6)"/>
+          <path d="M7 28H33" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M20 13C20 13 20 9 17 7C17 7 20 7 20 10" fill="white" opacity="0.9"/>
+          <path d="M20 13C20 13 20 8 23 6C23 6 20 7 20 10" fill="rgba(255,255,255,0.6)"/>
+          <path d="M20 13V7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div style="text-align:left">
+          <div style="font-size:2rem;font-weight:800;color:white;line-height:1">TUMBUH</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.6)">Belajar. Berkembang. Berdampak.</div>
+        </div>
+      </div>
+
+      <!-- Illustration -->
+      <div style="margin-bottom:32px">
+        <svg width="280" height="200" viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background shapes -->
+          <circle cx="140" cy="120" r="80" fill="rgba(255,255,255,.06)"/>
+          <!-- Person 1 - learning -->
+          <rect x="40" y="100" width="60" height="80" rx="12" fill="rgba(255,255,255,.12)"/>
+          <circle cx="70" cy="85" r="18" fill="rgba(255,255,255,.25)"/>
+          <rect x="55" y="108" width="30" height="4" rx="2" fill="rgba(255,255,255,.3)"/>
+          <rect x="60" y="118" width="20" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+          <rect x="55" y="128" width="30" height="4" rx="2" fill="rgba(255,255,255,.3)"/>
+          <!-- Book -->
+          <rect x="45" y="140" width="50" height="35" rx="6" fill="rgba(255,255,255,.2)"/>
+          <line x1="70" y1="140" x2="70" y2="175" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/>
+          <!-- Sprout from book -->
+          <path d="M70 140 C70 130 65 120 60 115" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M70 135 C70 125 75 118 80 115" stroke="rgba(255,255,255,.4)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="60" cy="113" r="4" fill="rgba(255,255,255,.5)"/>
+          <circle cx="80" cy="113" r="4" fill="rgba(255,255,255,.35)"/>
+          <!-- Person 2 - teaching -->
+          <rect x="170" y="80" width="70" height="100" rx="12" fill="rgba(255,255,255,.12)"/>
+          <circle cx="205" cy="65" r="20" fill="rgba(255,255,255,.25)"/>
+          <rect x="175" y="90" width="60" height="4" rx="2" fill="rgba(255,255,255,.3)"/>
+          <rect x="180" y="100" width="50" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+          <rect x="175" y="110" width="60" height="4" rx="2" fill="rgba(255,255,255,.3)"/>
+          <rect x="185" y="120" width="40" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+          <!-- Award badge -->
+          <circle cx="235" cy="50" r="14" fill="rgba(255,255,255,.2)"/>
+          <text x="235" y="55" text-anchor="middle" fill="white" font-size="14">★</text>
+          <!-- Progress bar -->
+          <rect x="120" y="160" width="40" height="8" rx="4" fill="rgba(255,255,255,.15)"/>
+          <rect x="120" y="160" width="28" height="8" rx="4" fill="rgba(255,255,255,.4)"/>
+          <text x="163" y="168" fill="rgba(255,255,255,.7)" font-size="9">68%</text>
+        </svg>
+      </div>
+
+      <h1 style="font-size:1.75rem;margin-bottom:12px">Selamat datang kembali!</h1>
+      <p>Masuk untuk melanjutkan perjalanan belajar dan pengembangan kompetensi Anda.</p>
+
+      <!-- Demo accounts -->
+      <div class="auth-demo-accounts">
+        <div class="auth-demo-title">🔑 Akun Demo (Mode Demo)</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <div class="auth-demo-item">
+            <strong style="color:rgba(255,255,255,.9)">Admin:</strong>
+            <code>admin@tumbuh.id</code> / <code>demo1234</code>
+          </div>
+          <div class="auth-demo-item">
+            <strong style="color:rgba(255,255,255,.9)">Pegawai:</strong>
+            <code>pegawai@tumbuh.id</code> / <code>demo1234</code>
+          </div>
+          <div class="auth-demo-item">
+            <strong style="color:rgba(255,255,255,.9)">Pimpinan:</strong>
+            <code>pimpinan@tumbuh.id</code> / <code>demo1234</code>
+          </div>
+          <div class="auth-demo-item">
+            <strong style="color:rgba(255,255,255,.9)">Peserta:</strong>
+            <code>peserta@tumbuh.id</code> / <code>demo1234</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Panel -->
+  <div class="auth-form-area">
+    <div class="auth-form-box">
+      <div class="auth-form-logo">
+        <a href="index.html" style="display:flex;align-items:center;gap:10px">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="#DDF4E9"/>
+            <path d="M8 28V14C8 13.4 8.4 13 9 13H19C19.6 13 20 13.4 20 14V28H8Z" fill="#086B50" opacity="0.85"/>
+            <path d="M20 28V14C20 13.4 20.4 13 21 13H31C31.6 13 32 13.4 32 14V28H20Z" fill="#15966F"/>
+            <path d="M7 28H33" stroke="#086B50" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 13V7" stroke="#086B50" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span style="font-size:1.25rem;font-weight:800;color:var(--heading)">TUMBUH</span>
+        </a>
+      </div>
+
+      <!-- Login Form -->
+      <div id="login-view">
+        <h2 class="auth-form-title">Masuk ke Akun</h2>
+        <p class="auth-form-subtitle">Belum punya akun? <a href="#" onclick="showRegister()">Daftar sekarang</a></p>
+
+        <!-- Quick fill demo buttons -->
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:20px">
+          <button class="btn btn-secondary btn-sm" onclick="fillDemo('admin@tumbuh.id','demo1234')" style="font-size:11px">
+            <i data-lucide="shield" style="width:12px;height:12px"></i> Masuk sbg Admin
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="fillDemo('pegawai@tumbuh.id','demo1234')" style="font-size:11px">
+            <i data-lucide="user" style="width:12px;height:12px"></i> Masuk sbg Pegawai
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="fillDemo('pimpinan@tumbuh.id','demo1234')" style="font-size:11px">
+            <i data-lucide="briefcase" style="width:12px;height:12px"></i> Masuk sbg Pimpinan
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="fillDemo('peserta@tumbuh.id','demo1234')" style="font-size:11px">
+            <i data-lucide="book-open" style="width:12px;height:12px"></i> Masuk sbg Peserta
+          </button>
+        </div>
+
+        <div class="divider" style="display:flex;align-items:center;gap:12px">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:12px;color:var(--body)">atau masuk dengan email</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <div style="margin-top:20px"></div>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label" for="login-email">Email <span class="required">*</span></label>
+              <input class="form-input" type="email" id="login-email" placeholder="email@contoh.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="login-password">Kata Sandi <span class="required">*</span></label>
+              <div style="position:relative">
+                <input class="form-input" type="password" id="login-password" placeholder="Masukkan kata sandi" required autocomplete="current-password" style="padding-right:44px">
+                <button type="button" onclick="togglePassword('login-password')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--body)" class="btn btn-ghost btn-icon" id="eye-btn">
+                  <i data-lucide="eye" style="width:16px;height:16px" id="eye-icon"></i>
+                </button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:var(--text-sm)">
+                <input type="checkbox" id="remember-me" style="accent-color:var(--primary)"> Ingat saya
+              </label>
+              <a href="forgot-password.html" style="font-size:var(--text-sm);color:var(--primary);font-weight:600">Lupa kata sandi?</a>
+            </div>
+            <div id="login-error" class="form-error hidden" style="text-align:center;padding:10px;background:#fff5f5;border-radius:8px;border:1px solid #f5c6c6"></div>
+            <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
+              <span id="login-btn-text"><i data-lucide="log-in" style="width:18px;height:18px"></i> Masuk</span>
+              <span id="login-btn-loading" class="hidden" style="display:flex;align-items:center;gap:8px"><span class="spinner" style="width:18px;height:18px"></span> Memproses...</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="auth-form-footer">
+          Belum punya akun? <a href="#" onclick="showRegister()">Daftar sekarang</a>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-view" class="hidden">
+        <h2 class="auth-form-title">Buat Akun Baru</h2>
+        <p class="auth-form-subtitle">Sudah punya akun? <a href="#" onclick="showLogin()">Masuk di sini</a></p>
+
+        <form id="register-form" onsubmit="handleRegister(event)">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label class="form-label">Pilih Peran <span class="required">*</span></label>
+              <div class="auth-role-select">
+                <div class="role-option selected" id="role-admin" onclick="selectRole('admin')">
+                  <div style="font-size:1.5rem;margin-bottom:4px">🛡️</div>
+                  <div class="role-option-name">Admin</div>
+                </div>
+                <div class="role-option" id="role-employee" onclick="selectRole('employee')">
+                  <div style="font-size:1.5rem;margin-bottom:4px">👤</div>
+                  <div class="role-option-name">Pegawai</div>
+                </div>
+                <div class="role-option" id="role-manager" onclick="selectRole('manager')">
+                  <div style="font-size:1.5rem;margin-bottom:4px">💼</div>
+                  <div class="role-option-name">Pimpinan</div>
+                </div>
+                <div class="role-option" id="role-learner" onclick="selectRole('learner')">
+                  <div style="font-size:1.5rem;margin-bottom:4px">📚</div>
+                  <div class="role-option-name">Peserta</div>
+                </div>
+              </div>
+              <input type="hidden" id="reg-role" value="admin">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label" for="reg-name">Nama Lengkap <span class="required">*</span></label>
+                <input class="form-input" type="text" id="reg-name" placeholder="Nama lengkap Anda" required>
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label" for="reg-email">Email <span class="required">*</span></label>
+                <input class="form-input" type="email" id="reg-email" placeholder="email@contoh.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="reg-password">Kata Sandi <span class="required">*</span></label>
+                <input class="form-input" type="password" id="reg-password" placeholder="Min. 8 karakter" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="reg-password2">Konfirmasi <span class="required">*</span></label>
+                <input class="form-input" type="password" id="reg-password2" placeholder="Ulangi kata sandi" required>
+              </div>
+            </div>
+
+            <div style="background:var(--mint-light);border:1px solid var(--mint);border-radius:var(--radius-md);padding:12px;font-size:var(--text-xs);color:var(--body)">
+              ℹ️ Ini adalah mode demo. Akun baru akan disimpan di browser ini. Untuk produksi, hubungkan ke Supabase.
+            </div>
+
+            <div id="register-error" class="form-error hidden" style="text-align:center;padding:10px;background:#fff5f5;border-radius:8px;border:1px solid #f5c6c6"></div>
+            <button type="submit" class="btn btn-primary btn-full btn-lg">
+              <i data-lucide="user-plus" style="width:18px;height:18px"></i> Buat Akun
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let selectedRole = 'admin';
+
+function showLogin() {
+  document.getElementById('login-view').classList.remove('hidden');
+  document.getElementById('register-view').classList.add('hidden');
+}
+function showRegister() {
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('register-view').classList.remove('hidden');
+}
+
+function fillDemo(email, password) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = password;
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('reg-role').value = role;
+  ['admin','employee','manager','learner'].forEach(r => {
+    document.getElementById('role-'+r)?.classList.remove('selected');
+  });
+  document.getElementById('role-'+role)?.classList.add('selected');
+}
+
+function togglePassword(fieldId) {
+  const field = document.getElementById(fieldId);
+  const icon = document.getElementById('eye-icon');
+  if (field.type === 'password') {
+    field.type = 'text';
+    icon.setAttribute('data-lucide', 'eye-off');
+  } else {
+    field.type = 'password';
+    icon.setAttribute('data-lucide', 'eye');
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btnText = document.getElementById('login-btn-text');
+  const btnLoading = document.getElementById('login-btn-loading');
+
+  errEl.classList.add('hidden');
+  btnText.classList.add('hidden');
+  btnLoading.classList.remove('hidden');
+  document.getElementById('login-btn').disabled = true;
+
+  setTimeout(() => {
+    const user = DB.login(email, password);
+    btnText.classList.remove('hidden');
+    btnLoading.classList.add('hidden');
+    document.getElementById('login-btn').disabled = false;
+
+    if (!user) {
+      errEl.textContent = 'Email atau kata sandi salah. Gunakan akun demo yang tersedia.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    Auth.setUser(user);
+    showToast(`Selamat datang, ${user.full_name}! 🎉`, 'success');
+    setTimeout(() => {
+      window.location.href = 'dashboard.html';
+    }, 800);
+  }, 900);
+}
+
+function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-password').value;
+  const pass2 = document.getElementById('reg-password2').value;
+  const role = document.getElementById('reg-role').value;
+  const errEl = document.getElementById('register-error');
+
+  errEl.classList.add('hidden');
+  if (!name || !email || !pass) { errEl.textContent = 'Semua field wajib diisi.'; errEl.classList.remove('hidden'); return; }
+  if (pass.length < 8) { errEl.textContent = 'Kata sandi minimal 8 karakter.'; errEl.classList.remove('hidden'); return; }
+  if (pass !== pass2) { errEl.textContent = 'Konfirmasi kata sandi tidak cocok.'; errEl.classList.remove('hidden'); return; }
+  if (DB.data.users.some(u => u.email === email)) { errEl.textContent = 'Email sudah terdaftar.'; errEl.classList.remove('hidden'); return; }
+
+  const newUser = {
+    id: DB.generateId('u'),
+    email, password: pass, role, full_name: name,
+    unit_id: 'unit001', position: '', avatar: null,
+    phone: '', employment_status: 'Aktif',
+    joined_at: new Date().toISOString().split('T')[0],
+    created_at: new Date().toISOString(),
+  };
+  DB.insert('users', newUser);
+  const { password: _, ...safeUser } = newUser;
+  Auth.setUser(safeUser);
+  showToast('Akun berhasil dibuat! Selamat datang di TUMBUH! 🌱', 'success');
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Redirect if already logged in
+  const user = Auth.getUser();
+  if (user) window.location.href = 'dashboard.html';
+  if (window.lucide) window.lucide.createIcons();
+});
+</script>
+</body>
+</html>
